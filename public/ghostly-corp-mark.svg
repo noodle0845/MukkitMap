@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title desc">
+  <title id="title">Ghostly Corp. mark</title>
+  <desc id="desc">A black ghost mascot wearing a cap.</desc>
+  <g fill="none" stroke="#050505" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M36 132c24-28 24-58 23-78-.7-25 20-39 44-39 26 0 47 18 51 44 3 18 2 46 7 77 2 11-8 17-18 11l-14-9-17 10-16-10-18 10-16-10-15 8c-11 6-22-3-11-14Z"
+      stroke-width="13"
+    />
+    <path d="M59 67c0-28 20-51 49-51 26 0 43 15 50 38" stroke-width="13" />
+    <path d="M48 76c34-5 73-18 105-27 16-4 34-2 45 7 8 7 5 17-6 20-40 9-82 15-126 26" stroke-width="17" />
+    <path d="M89 83v22" stroke-width="13" />
+    <path d="M121 83v22" stroke-width="13" />
+  </g>
+  <path
+    d="M123 39c7-9 22-4 19 9-3 12-19 20-19 20s-16-8-19-20c-3-13 12-18 19-9Z"
+    fill="#050505"
+  />
+</svg>

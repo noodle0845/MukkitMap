@@ -1,0 +1,320 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   Design tokens
+   ───────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-soft: #eef2f6;
+
+  /* Text */
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-soft: #94a3b8;
+
+  /* Brand */
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-soft: #ecfdf5;
+  --primary-ring: rgba(16, 185, 129, 0.18);
+
+  /* Accents (use sparingly) */
+  --accent: #f97316;
+
+  /* States */
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 6px 20px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.12);
+  --shadow-pop: 0 12px 32px rgba(15, 23, 42, 0.14);
+
+  /* Radii */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    "Pretendard Variable",
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Apple SD Gothic Neo",
+    "Segoe UI",
+    "Noto Sans KR",
+    sans-serif;
+  font-feature-settings: "ss01", "tnum";
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(16, 185, 129, 0.08), transparent 60%),
+    radial-gradient(800px 400px at 100% 0%, rgba(99, 102, 241, 0.05), transparent 60%),
+    var(--bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────
+   Leaflet / map polish
+   ───────────────────────────────────────────── */
+.leaflet-container {
+  font: inherit;
+  background: #e8efe9;
+  border-radius: var(--r-lg);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+}
+
+.leaflet-tooltip {
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+
+/* ─────────────────────────────────────────────
+   Animations
+   ───────────────────────────────────────────── */
+@keyframes mk-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes mk-scale-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mk-slide-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes mk-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes mk-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes mk-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@layer components {
+  /* ── Surfaces ───────────────────────────── */
+  .panel {
+    @apply rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)];
+  }
+  .card {
+    @apply rounded-2xl border border-[var(--border)] bg-white shadow-[var(--shadow-sm)] transition;
+  }
+  .card:hover {
+    @apply border-slate-300 shadow-[var(--shadow-md)];
+  }
+  .panel-header {
+    @apply flex items-center justify-between gap-3 border-b border-[var(--border-soft)] px-5 py-4;
+  }
+
+  /* ── Typography ─────────────────────────── */
+  .display {
+    @apply text-[28px] font-bold leading-[1.2] tracking-[-0.01em] text-slate-900;
+  }
+  .title {
+    @apply text-[18px] font-bold leading-snug text-slate-900;
+  }
+  .section-title {
+    @apply text-base font-semibold text-slate-900;
+  }
+  .section-subtitle {
+    @apply text-sm leading-6 text-slate-500;
+  }
+  .caption {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-slate-400;
+  }
+  .field-label {
+    @apply text-[13px] font-semibold text-slate-700;
+  }
+
+  /* ── Inputs ─────────────────────────────── */
+  .field {
+    @apply mt-1.5 w-full rounded-xl border border-[var(--border)] bg-white px-3.5 py-2.5 text-[14px] text-slate-900 outline-none transition;
+    @apply placeholder:text-slate-400;
+  }
+  .field:focus {
+    @apply border-emerald-500 ring-4 ring-[var(--primary-ring)];
+  }
+  .field:disabled {
+    @apply cursor-not-allowed bg-slate-50 text-slate-400;
+  }
+
+  /* ── Buttons ────────────────────────────── */
+  .btn {
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply btn bg-[var(--primary)] text-white shadow-[0_6px_16px_rgba(16,185,129,0.25)];
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-ghost {
+    @apply btn border border-[var(--border)] bg-white text-slate-700;
+  }
+  .btn-ghost:hover { @apply border-slate-300 bg-slate-50; }
+  .btn-soft {
+    @apply btn bg-[var(--primary-soft)] text-emerald-700;
+  }
+  .btn-soft:hover { @apply bg-emerald-100; }
+  .btn-danger {
+    @apply btn bg-white text-red-600 border border-red-100;
+  }
+  .btn-danger:hover { @apply bg-[var(--danger-soft)] border-red-200; }
+  .btn-link {
+    @apply inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 transition hover:text-emerald-800;
+  }
+
+  /* Compatibility aliases (existing code paths) */
+  .button-primary { @apply btn-primary; }
+  .button-secondary { @apply btn-ghost; }
+
+  .icon-button {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.96];
+  }
+
+  .fab {
+    @apply inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-5 py-3.5 text-sm font-bold text-white shadow-[0_18px_36px_rgba(16,185,129,0.35)] transition hover:bg-[var(--primary-hover)] active:scale-[0.97];
+  }
+
+  /* ── Chips & pills ──────────────────────── */
+  .chip {
+    @apply inline-flex select-none items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300;
+  }
+  .chip-active {
+    @apply border-emerald-200 bg-[var(--primary-soft)] text-emerald-700;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-600;
+  }
+
+  /* ── Sheets / overlays ──────────────────── */
+  .overlay {
+    @apply fixed inset-0 z-[900] bg-slate-950/30 backdrop-blur-[2px];
+    animation: mk-fade-in 180ms ease-out both;
+  }
+  .sheet {
+    @apply fixed right-0 top-0 z-[901] flex h-full w-full max-w-[480px] flex-col border-l border-[var(--border)] bg-white shadow-[var(--shadow-lg)];
+    animation: mk-slide-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .sheet-header {
+    @apply flex items-start justify-between gap-4 border-b border-[var(--border-soft)] px-6 py-5;
+  }
+  .sheet-body {
+    @apply flex-1 overflow-y-auto px-6 py-5;
+  }
+  .sheet-footer {
+    @apply border-t border-[var(--border-soft)] bg-slate-50/60 px-6 py-4;
+  }
+  .modal-center {
+    @apply pointer-events-none fixed inset-0 z-[902] flex items-center justify-center p-4;
+  }
+  .modal {
+    @apply pointer-events-auto w-full max-w-[480px] rounded-3xl border border-[var(--border)] bg-white shadow-[var(--shadow-lg)];
+    animation: mk-scale-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  /* ── Toast ──────────────────────────────── */
+  .toast {
+    @apply pointer-events-auto flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[var(--shadow-pop)];
+    animation: mk-scale-in 180ms ease-out both;
+  }
+
+  /* ── Skeleton ───────────────────────────── */
+  .skeleton {
+    @apply rounded-md bg-slate-100;
+    background-image: linear-gradient(
+      90deg,
+      rgba(241, 245, 249, 0) 0,
+      rgba(226, 232, 240, 0.7) 40%,
+      rgba(241, 245, 249, 0) 80%
+    );
+    background-size: 800px 100%;
+    animation: mk-shimmer 1.6s linear infinite;
+  }
+
+  /* ── Tabs ───────────────────────────────── */
+  .tabs {
+    @apply inline-flex rounded-xl bg-slate-100 p-1;
+  }
+  .tab {
+    @apply rounded-lg px-4 py-1.5 text-sm font-semibold text-slate-500 transition;
+  }
+  .tab-active {
+    @apply bg-white text-slate-900 shadow-[var(--shadow-sm)];
+  }
+
+  /* ── Kebab menu ─────────────────────────── */
+  .menu {
+    @apply absolute right-0 z-30 mt-2 w-44 origin-top-right overflow-hidden rounded-xl border border-[var(--border)] bg-white p-1 shadow-[var(--shadow-pop)];
+    animation: mk-scale-in 140ms ease-out both;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50;
+  }
+  .menu-item-danger {
+    @apply text-red-600 hover:bg-[var(--danger-soft)];
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Custom scrollbar
+   ───────────────────────────────────────────── */
+.scroll-pretty::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-pretty::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+.scroll-pretty::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}

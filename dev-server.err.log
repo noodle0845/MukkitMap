@@ -1,0 +1,215 @@
+⨯ ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  [90m66 |[0m         ) : [36mnull[0m}
+  [90m67 |[0m       </div>
+[31m[1m>[0m [90m68 |[0m     </>
+  [90m   |[0m       [31m[1m^[0m
+  [90m69 |[0m   );
+  [90m70 |[0m }
+  [90m71 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+
+⨯ ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  [90m66 |[0m         ) : [36mnull[0m}
+  [90m67 |[0m       </div>
+[31m[1m>[0m [90m68 |[0m     </>
+  [90m   |[0m       [31m[1m^[0m
+  [90m69 |[0m   );
+  [90m70 |[0m }
+  [90m71 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+
+⨯ ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  [90m66 |[0m         ) : [36mnull[0m}
+  [90m67 |[0m       </div>
+[31m[1m>[0m [90m68 |[0m     </>
+  [90m   |[0m       [31m[1m^[0m
+  [90m69 |[0m   );
+  [90m70 |[0m }
+  [90m71 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+
+[browser] ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  66 |         ) : null}
+  67 |       </div>
+> 68 |     </>
+     |       ^
+  69 |   );
+  70 | }
+  71 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component] 
+    at handleErrors (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  [90m66 |[0m         ) : [36mnull[0m}
+  [90m67 |[0m       </div>
+[31m[1m>[0m [90m68 |[0m     </>
+  [90m   |[0m       [31m[1m^[0m
+  [90m69 |[0m   );
+  [90m70 |[0m }
+  [90m71 |[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  66 |         ) : null}
+  67 |       </div>
+> 68 |     </>
+     |       ^
+  69 |   );
+  70 | }
+  71 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./src/components/ui/Modal.tsx:68:7)
+    at <unknown> (Error: (./src/components/ui/Modal.tsx:68:7)
+[browser] ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  66 |         ) : null}
+  67 |       </div>
+> 68 |     </>
+     |       ^
+  69 |   );
+  70 | }
+  71 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component] 
+    at handleErrors (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/ui/Modal.tsx:68:7
+Expression expected
+  66 |         ) : null}
+  67 |       </div>
+> 68 |     </>
+     |       ^
+  69 |   );
+  70 | }
+  71 |
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./src/components/ui/Modal.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Client Component Browser]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/ui/Modal.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Client Component SSR]
+    ./src/components/HomeClient.tsx [Server Component]
+    ./src/app/page.tsx [Server Component] 
+    at handleErrors (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/라면/Desktop/코덱스/먹킷맵/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
