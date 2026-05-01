@@ -31,7 +31,3 @@ dev-server*.log
 *.tsbuildinfo
 next-env.d.ts
 
-Add-Content .gitignore "`ndev-server*.log`n*.ai`n먹킷맵로고*.png"
-git add .gitignore
-git commit -m "Ignore local assets and logs"
-git push
