@@ -27,11 +27,9 @@ import {
   createPlace,
   deleteMember,
   deletePlace,
-  getMembersByProject,
-  getPlacesByProject,
-  getProjectById,
+  getProjectBundle,
   updatePlace
-} from "@/lib/storage";
+} from "@/lib/supabaseStorage";
 import { getMemberForPlace, uniqueTags } from "@/lib/utils";
 
 const LeafletMapView = dynamic(
@@ -94,12 +92,22 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [sheet, setSheet] = useState<SheetMode>({ kind: "closed" });
   const [copied, setCopied] = useState(false);
 
-  const refreshProject = useCallback(() => {
-    setProject(getProjectById(projectId));
-    setMembers(getMembersByProject(projectId));
-    setPlaces(getPlacesByProject(projectId));
-    setLoaded(true);
-  }, [projectId]);
+  const refreshProject = useCallback(async () => {
+    try {
+      const bundle = await getProjectBundle(projectId);
+      setProject(bundle.project);
+      setMembers(bundle.members);
+      setPlaces(bundle.places);
+    } catch {
+      toast.show({
+        title: "프로젝트 데이터를 불러오지 못했어요",
+        description: "Supabase 연결과 배포 환경변수를 확인해주세요.",
+        tone: "error"
+      });
+    } finally {
+      setLoaded(true);
+    }
+  }, [projectId, toast]);
 
   useEffect(() => {
     refreshProject();
@@ -151,55 +159,88 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     setSheet({ kind: "place-detail", placeId });
   }
 
-  function handleAddMember(input: Parameters<typeof createMember>[1]) {
-    createMember(projectId, input);
-    refreshProject();
-    toast.show({ title: "참여자가 추가됐어요", tone: "success" });
-  }
-
-  function handleDeleteMember(member: Member) {
-    deleteMember(member.id);
-    setSelectedPlaceId(null);
-    refreshProject();
-    toast.show({
-      title: `${member.nickname} 참여자를 삭제했어요`,
-      description: "이 참여자가 등록한 장소도 함께 삭제됐습니다.",
-      tone: "info"
-    });
-  }
-
-  function handleSubmitPlace(input: PlaceCreateInput) {
-    const targetEditing = editingPlace;
-    const saved = targetEditing
-      ? updatePlace(targetEditing.id, input)
-      : createPlace(projectId, input);
-
-    refreshProject();
-    setPickedLocation(null);
-    if (saved) {
-      setSelectedPlaceId(saved.id);
-      setSheet({ kind: "place-detail", placeId: saved.id });
-    } else {
-      setSheet({ kind: "closed" });
+  async function handleAddMember(input: Parameters<typeof createMember>[1]) {
+    try {
+      await createMember(projectId, input);
+      await refreshProject();
+      toast.show({ title: "참여자가 추가됐어요", tone: "success" });
+    } catch {
+      toast.show({
+        title: "참여자 추가에 실패했어요",
+        description: "잠시 후 다시 시도해주세요.",
+        tone: "error"
+      });
     }
-    toast.show({
-      title: targetEditing ? "장소를 수정했어요" : "장소를 추가했어요",
-      tone: "success"
-    });
   }
 
-  function handleDeletePlace(place: Place) {
-    deletePlace(place.id);
-    if (selectedPlaceId === place.id) setSelectedPlaceId(null);
-    if (sheet.kind === "place-edit" && sheet.placeId === place.id)
-      setSheet({ kind: "closed" });
-    if (sheet.kind === "place-detail" && sheet.placeId === place.id)
-      setSheet({ kind: "closed" });
-    refreshProject();
-    toast.show({
-      title: `${place.name}을(를) 삭제했어요`,
-      tone: "info"
-    });
+  async function handleDeleteMember(member: Member) {
+    try {
+      await deleteMember(member.id);
+      setSelectedPlaceId(null);
+      await refreshProject();
+      toast.show({
+        title: `${member.nickname} 참여자를 삭제했어요`,
+        description: "이 참여자가 등록한 장소도 함께 삭제됐습니다.",
+        tone: "info"
+      });
+    } catch {
+      toast.show({
+        title: "참여자 삭제에 실패했어요",
+        description: "잠시 후 다시 시도해주세요.",
+        tone: "error"
+      });
+    }
+  }
+
+  async function handleSubmitPlace(input: PlaceCreateInput) {
+    const targetEditing = editingPlace;
+
+    try {
+      const saved = targetEditing
+        ? await updatePlace(targetEditing.id, input)
+        : await createPlace(projectId, input);
+
+      await refreshProject();
+      setPickedLocation(null);
+      if (saved) {
+        setSelectedPlaceId(saved.id);
+        setSheet({ kind: "place-detail", placeId: saved.id });
+      } else {
+        setSheet({ kind: "closed" });
+      }
+      toast.show({
+        title: targetEditing ? "장소를 수정했어요" : "장소를 추가했어요",
+        tone: "success"
+      });
+    } catch {
+      toast.show({
+        title: targetEditing ? "장소 수정에 실패했어요" : "장소 추가에 실패했어요",
+        description: "잠시 후 다시 시도해주세요.",
+        tone: "error"
+      });
+    }
+  }
+
+  async function handleDeletePlace(place: Place) {
+    try {
+      await deletePlace(place.id);
+      if (selectedPlaceId === place.id) setSelectedPlaceId(null);
+      if (sheet.kind === "place-edit" && sheet.placeId === place.id)
+        setSheet({ kind: "closed" });
+      if (sheet.kind === "place-detail" && sheet.placeId === place.id)
+        setSheet({ kind: "closed" });
+      await refreshProject();
+      toast.show({
+        title: `${place.name}을(를) 삭제했어요`,
+        tone: "info"
+      });
+    } catch {
+      toast.show({
+        title: "장소 삭제에 실패했어요",
+        description: "잠시 후 다시 시도해주세요.",
+        tone: "error"
+      });
+    }
   }
 
   function startEditPlace(place: Place) {

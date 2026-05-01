@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
@@ -9,7 +10,12 @@ import { ProjectList } from "@/components/ProjectList";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 import type { Project, ProjectCounts, ProjectCreateInput } from "@/lib/types";
-import { createProject, getProjects, getStore, seedSampleData } from "@/lib/storage";
+import {
+  createProject,
+  getProjectCounts,
+  getProjects,
+  seedSampleData
+} from "@/lib/supabaseStorage";
 
 function HomeContent() {
   const router = useRouter();
@@ -17,42 +23,59 @@ function HomeContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [counts, setCounts] = useState<Record<string, ProjectCounts>>({});
   const [createOpen, setCreateOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  function refreshProjects() {
-    const nextProjects = getProjects();
-    const store = getStore();
+  async function refreshProjects() {
+    try {
+      const nextProjects = await getProjects();
+      const nextCounts = await getProjectCounts(nextProjects);
 
-    setProjects(nextProjects);
-    setCounts(
-      Object.fromEntries(
-        nextProjects.map((project) => [
-          project.id,
-          {
-            memberCount: store.members.filter((m) => m.projectId === project.id).length,
-            placeCount: store.places.filter((p) => p.projectId === project.id).length
-          }
-        ])
-      )
-    );
+      setProjects(nextProjects);
+      setCounts(nextCounts);
+    } catch {
+      toast.show({
+        title: "프로젝트를 불러오지 못했어요",
+        description: "잠시 후 다시 시도해주세요.",
+        tone: "error"
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     refreshProjects();
   }, []);
 
-  function handleCreateProject(input: ProjectCreateInput) {
-    const project = createProject(input);
-    setCreateOpen(false);
-    refreshProjects();
-    toast.show({ title: "프로젝트가 생성됐어요", tone: "success" });
-    router.push(`/projects/${project.id}`);
+  async function handleCreateProject(input: ProjectCreateInput) {
+    try {
+      const project = await createProject(input);
+      setCreateOpen(false);
+      await refreshProjects();
+      toast.show({ title: "프로젝트가 생성됐어요", tone: "success" });
+      router.push(`/projects/${project.id}`);
+    } catch {
+      toast.show({
+        title: "프로젝트 생성에 실패했어요",
+        description: "Supabase 연결과 환경변수를 확인해주세요.",
+        tone: "error"
+      });
+    }
   }
 
-  function handleSeedSample() {
-    const project = seedSampleData();
-    refreshProjects();
-    toast.show({ title: "예시 프로젝트를 불러왔어요", tone: "success" });
-    router.push(`/projects/${project.id}`);
+  async function handleSeedSample() {
+    try {
+      const project = await seedSampleData();
+      await refreshProjects();
+      toast.show({ title: "예시 프로젝트를 불러왔어요", tone: "success" });
+      router.push(`/projects/${project.id}`);
+    } catch {
+      toast.show({
+        title: "예시 데이터를 만들지 못했어요",
+        description: "Supabase 테이블 생성 여부를 확인해주세요.",
+        tone: "error"
+      });
+    }
   }
 
   const isEmpty = projects.length === 0;
@@ -63,7 +86,13 @@ function HomeContent() {
         {/* ── Topbar ───────────────────────────────────────────── */}
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <GhostlyLogo className="w-[150px] sm:w-[176px]" />
+            <Link
+              href="/"
+              aria-label="먹킷맵 홈으로"
+              className="inline-flex transition active:scale-[0.98]"
+            >
+              <GhostlyLogo className="w-[150px] sm:w-[176px]" />
+            </Link>
             <span className="hidden rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
               공유 맛집 지도
             </span>
@@ -76,7 +105,14 @@ function HomeContent() {
         </header>
 
         {/* ── Empty hero ──────────────────────────────────────── */}
-        {isEmpty ? (
+        {loading ? (
+          <section className="mt-16 flex justify-center">
+            <div className="flex items-center gap-2 rounded-xl bg-white px-5 py-4 text-sm font-semibold text-slate-500 shadow-soft">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              프로젝트 불러오는 중
+            </div>
+          </section>
+        ) : isEmpty ? (
           <section className="mt-16 flex flex-col items-center text-center">
             <span className="caption text-emerald-700">친구 맛집 한 지도에</span>
             <h1 className="display mt-3 max-w-2xl">

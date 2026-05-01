@@ -74,63 +74,75 @@ export function BottomSheet({
   return createPortal(
     <>
       <div className="overlay" onClick={onClose} aria-hidden />
+      {/* 가운데 정렬은 flex 래퍼가 담당. 시트 자체는 transform을 Y축에만 사용해
+          mk-slide-up 키프레임의 translateY와 충돌하지 않게 한다. */}
       <div
-        role="dialog"
-        aria-modal="true"
-        className="scroll-pretty"
         style={{
           position: "fixed",
-          left: "50%",
-          right: "auto",
-          bottom: 0,
-          width: "100%",
-          maxWidth,
+          inset: 0,
           zIndex: 950,
-          background: dark ? "#1f2937" : "#ffffff",
-          color: dark ? "#f8fafc" : undefined,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          boxShadow: "0 -24px 48px rgba(0,0,0,0.32)",
-          maxHeight: "92vh",
-          overflowY: "auto",
-          overscrollBehavior: "contain",
-          transform: `translate(-50%, ${dragOffset}px)`,
-          transition: dragging ? "none" : "transform 220ms cubic-bezier(0.2,0.8,0.2,1)",
-          animation: dragging ? undefined : "mk-slide-up 240ms cubic-bezier(0.2,0.8,0.2,1) both",
-          touchAction: "pan-y"
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-end",
+          pointerEvents: "none"
         }}
       >
         <div
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onClick={(event) => {
-            // 핸들 단순 클릭 → 닫기 (드래그 아니었을 때만)
-            if (dragOffset === 0 && dragStartY.current === null) onClose();
-          }}
+          role="dialog"
+          aria-modal="true"
+          className="scroll-pretty"
           style={{
-            display: "flex",
-            justifyContent: "center",
-            padding: "10px 0 6px",
-            cursor: "grab",
-            touchAction: "none",
-            userSelect: "none"
+            pointerEvents: "auto",
+            width: "100%",
+            maxWidth,
+            background: dark ? "#1f2937" : "#ffffff",
+            color: dark ? "#f8fafc" : undefined,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            boxShadow: "0 -24px 48px rgba(0,0,0,0.32)",
+            maxHeight: "92vh",
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            transform: `translateY(${dragOffset}px)`,
+            transition: dragging ? "none" : "transform 220ms cubic-bezier(0.2,0.8,0.2,1)",
+            animation: dragging
+              ? undefined
+              : "mk-slide-up 240ms cubic-bezier(0.2,0.8,0.2,1) both",
+            touchAction: "pan-y"
           }}
-          aria-label="닫기 핸들"
-          role="button"
         >
-          <span
-            style={{
-              display: "block",
-              width: 44,
-              height: 4,
-              borderRadius: 999,
-              background: dark ? "rgba(248,250,252,0.4)" : "rgba(15,23,42,0.22)"
+          <div
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onClick={() => {
+              // 핸들 단순 클릭 → 닫기 (드래그 아니었을 때만)
+              if (dragOffset === 0 && dragStartY.current === null) onClose();
             }}
-          />
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "10px 0 6px",
+              cursor: "grab",
+              touchAction: "none",
+              userSelect: "none"
+            }}
+            aria-label="닫기 핸들"
+            role="button"
+          >
+            <span
+              style={{
+                display: "block",
+                width: 44,
+                height: 4,
+                borderRadius: 999,
+                background: dark ? "rgba(248,250,252,0.4)" : "rgba(15,23,42,0.22)"
+              }}
+            />
+          </div>
+          <div style={{ padding: "4px 18px 22px" }}>{children}</div>
         </div>
-        <div style={{ padding: "4px 18px 22px" }}>{children}</div>
       </div>
     </>,
     document.body

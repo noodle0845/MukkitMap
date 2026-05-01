@@ -17,7 +17,7 @@ export function ProjectList({ projects, counts }: ProjectListProps) {
         <div>
           <h2 className="display text-[22px]">내 프로젝트</h2>
           <p className="mt-1 text-sm text-slate-500">
-            로컬 저장소에 저장된 지도방 {projects.length}개
+            공유 데이터베이스에 저장된 지도방 {projects.length}개
           </p>
         </div>
       </div>

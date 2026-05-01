@@ -28,7 +28,8 @@
 - Naver Maps JavaScript API
 - Naver Maps Geocoding / Reverse Geocoding
 - Kakao Local REST API
-- localStorage
+- Supabase Postgres / REST API
+- localStorage fallback
 
 ## 실행 방법
 
@@ -60,11 +61,26 @@ NAVER_MAP_CLIENT_SECRET=your_naver_cloud_maps_client_secret
 NAVER_SEARCH_CLIENT_ID=your_naver_developers_search_client_id
 NAVER_SEARCH_CLIENT_SECRET=your_naver_developers_search_client_secret
 KAKAO_REST_API_KEY=your_kakao_rest_api_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key
 ```
 
 Vercel 배포 환경에서는 Project Settings > Environment Variables에 같은 값을 추가합니다. 환경변수를 추가하거나 바꾼 뒤에는 재배포가 필요합니다.
 
 주의: `.env.local`은 절대 GitHub에 올리지 않습니다.
+
+## Supabase 설정
+
+Supabase 프로젝트를 만들고 SQL Editor에서 `projects`, `members`, `places` 테이블을 생성합니다.
+
+앱에서 사용하는 공개 환경변수는 아래 두 가지입니다.
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_public_key
+```
+
+현재 MVP는 초대 링크와 공동 편집을 빠르게 검증하기 위해 공개 읽기/쓰기 정책을 사용합니다. 서비스 단계에서는 로그인과 프로젝트 멤버 권한 기준으로 RLS 정책을 강화해야 합니다.
 
 ## 네이버 설정
 
@@ -127,13 +143,12 @@ src/
 
 ## 현재 MVP 제한
 
-현재 데이터는 브라우저의 `localStorage`에 저장됩니다. 그래서 같은 URL을 공유해도 다른 사람의 브라우저에는 데이터가 자동으로 동기화되지 않습니다.
+Supabase 환경변수가 있으면 데이터는 Supabase에 저장되고, 같은 프로젝트 URL을 여는 친구들이 같은 데이터를 볼 수 있습니다.
 
-진짜 친구 초대와 공동 편집을 지원하려면 다음 단계에서 Supabase 또는 Firebase 같은 데이터베이스 연동이 필요합니다.
+Supabase 환경변수가 없으면 개발 편의를 위해 브라우저 `localStorage` 저장소로 fallback 됩니다. 이 경우 다른 브라우저와 데이터가 동기화되지 않습니다.
 
 ## 다음 확장 계획
 
-- TODO: Supabase 연동
 - TODO: 프로젝트 초대 링크 추가
 - TODO: 로그인 기능 추가
 - TODO: 실시간 공동 편집
