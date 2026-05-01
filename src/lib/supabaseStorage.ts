@@ -46,7 +46,12 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export function isSupabaseConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+  return Boolean(
+    SUPABASE_URL?.startsWith("https://") &&
+      SUPABASE_ANON_KEY &&
+      !SUPABASE_URL.includes("your_") &&
+      !SUPABASE_ANON_KEY.includes("your_")
+  );
 }
 
 function mapProject(row: ProjectRow): Project {
@@ -96,11 +101,18 @@ async function request<T>(
     throw new Error("Supabase 환경변수가 없습니다.");
   }
 
+  const authHeaders: Record<string, string> = {
+    apikey: SUPABASE_ANON_KEY
+  };
+
+  if (!SUPABASE_ANON_KEY.startsWith("sb_publishable_")) {
+    authHeaders.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+  }
+
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      ...authHeaders,
       "Content-Type": "application/json",
       Prefer: prefer,
       ...(init.headers ?? {})
@@ -109,7 +121,7 @@ async function request<T>(
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || "Supabase 요청에 실패했습니다.");
+    throw new Error(message || `Supabase 요청에 실패했습니다. (${response.status})`);
   }
 
   if (response.status === 204) {

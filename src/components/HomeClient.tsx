@@ -17,6 +17,10 @@ import {
   seedSampleData
 } from "@/lib/supabaseStorage";
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 120) : "잠시 후 다시 시도해주세요.";
+}
+
 function HomeContent() {
   const router = useRouter();
   const toast = useToast();
@@ -32,10 +36,11 @@ function HomeContent() {
 
       setProjects(nextProjects);
       setCounts(nextCounts);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "프로젝트를 불러오지 못했어요",
-        description: "잠시 후 다시 시도해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     } finally {
@@ -54,10 +59,11 @@ function HomeContent() {
       await refreshProjects();
       toast.show({ title: "프로젝트가 생성됐어요", tone: "success" });
       router.push(`/projects/${project.id}`);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "프로젝트 생성에 실패했어요",
-        description: "Supabase 연결과 환경변수를 확인해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }
@@ -69,10 +75,11 @@ function HomeContent() {
       await refreshProjects();
       toast.show({ title: "예시 프로젝트를 불러왔어요", tone: "success" });
       router.push(`/projects/${project.id}`);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "예시 데이터를 만들지 못했어요",
-        description: "Supabase 테이블 생성 여부를 확인해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }

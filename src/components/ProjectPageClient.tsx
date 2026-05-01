@@ -69,6 +69,10 @@ const DEFAULT_FILTERS: FilterState = {
   tag: "전체"
 };
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 120) : "잠시 후 다시 시도해주세요.";
+}
+
 type ProjectPageClientProps = {
   projectId: string;
 };
@@ -98,10 +102,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       setProject(bundle.project);
       setMembers(bundle.members);
       setPlaces(bundle.places);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "프로젝트 데이터를 불러오지 못했어요",
-        description: "Supabase 연결과 배포 환경변수를 확인해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     } finally {
@@ -164,10 +169,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       await createMember(projectId, input);
       await refreshProject();
       toast.show({ title: "참여자가 추가됐어요", tone: "success" });
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "참여자 추가에 실패했어요",
-        description: "잠시 후 다시 시도해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }
@@ -183,10 +189,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         description: "이 참여자가 등록한 장소도 함께 삭제됐습니다.",
         tone: "info"
       });
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "참여자 삭제에 실패했어요",
-        description: "잠시 후 다시 시도해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }
@@ -212,10 +219,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         title: targetEditing ? "장소를 수정했어요" : "장소를 추가했어요",
         tone: "success"
       });
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: targetEditing ? "장소 수정에 실패했어요" : "장소 추가에 실패했어요",
-        description: "잠시 후 다시 시도해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }
@@ -234,10 +242,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         title: `${place.name}을(를) 삭제했어요`,
         tone: "info"
       });
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.show({
         title: "장소 삭제에 실패했어요",
-        description: "잠시 후 다시 시도해주세요.",
+        description: getErrorMessage(error),
         tone: "error"
       });
     }
