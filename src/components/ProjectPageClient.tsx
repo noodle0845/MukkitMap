@@ -3,7 +3,19 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Home, MapPin, Plus, RefreshCw, Share2, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Home,
+  Link2,
+  LogIn,
+  MapPin,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Share2,
+  Users
+} from "lucide-react";
 import { FilterBar } from "@/components/FilterPanel";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { MemberForm } from "@/components/MemberForm";
@@ -14,9 +26,11 @@ import { PlaceForm } from "@/components/PlaceForm";
 import { PlaceList } from "@/components/PlaceList";
 import { Sheet } from "@/components/ui/Sheet";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type {
   FilterState,
   Member,
+  MemberRole,
   PickedLocation,
   Place,
   PlaceCreateInput,
@@ -28,27 +42,22 @@ import {
   deleteMember,
   deletePlace,
   getProjectBundle,
+  regenerateInviteCode,
   updatePlace
 } from "@/lib/supabaseStorage";
+import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { getMemberForPlace, uniqueTags } from "@/lib/utils";
 
-// 프로젝트 로딩 최대 5초
 const LOAD_TIMEOUT_MS = 5000;
 
 const LeafletMapView = dynamic(
   () => import("@/components/MapView").then((m) => m.MapView),
-  {
-    ssr: false,
-    loading: () => <MapSkeleton />
-  }
+  { ssr: false, loading: () => <MapSkeleton /> }
 );
 
 const NaverMapView = dynamic(
   () => import("@/components/NaverMapView").then((m) => m.NaverMapView),
-  {
-    ssr: false,
-    loading: () => <MapSkeleton />
-  }
+  { ssr: false, loading: () => <MapSkeleton /> }
 );
 
 function MapSkeleton() {
@@ -76,16 +85,9 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 120) : "잠시 후 다시 시도해주세요.";
 }
 
-// ── 로딩 상태 ─────────────────────────────────────────────────────
-type LoadStatus =
-  | "loading"       // API 응답 대기 중
-  | "loaded"        // 성공
-  | "timeout"       // 5초 초과 → 네트워크 오류 가능성
-  | "network-error" // fetch 자체가 throw
+type LoadStatus = "loading" | "loaded" | "timeout" | "network-error" | "access-denied";
 
-type ProjectPageClientProps = {
-  projectId: string;
-};
+type ProjectPageClientProps = { projectId: string };
 
 type SheetMode =
   | { kind: "closed" }
@@ -95,11 +97,12 @@ type SheetMode =
   | { kind: "place-edit"; placeId: string }
   | { kind: "place-detail"; placeId: string };
 
-// ── 로딩 화면 ─────────────────────────────────────────────────────
+// ── 공통 화면 컴포넌트 ────────────────────────────────────────────
+
 function LoadingScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-3">
         <span className="flex items-center gap-2 rounded-xl bg-white px-5 py-4 text-sm font-semibold text-slate-500 shadow-soft">
           <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
           지도 불러오는 중…
@@ -110,12 +113,7 @@ function LoadingScreen() {
   );
 }
 
-// ── 타임아웃 / 네트워크 에러 화면 ─────────────────────────────────
-function LoadErrorScreen({
-  onRetry
-}: {
-  onRetry: () => void;
-}) {
+function LoadErrorScreen({ onRetry }: { onRetry: () => void }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <section className="card w-full max-w-sm p-8 text-center">
@@ -127,10 +125,7 @@ function LoadErrorScreen({
           링크가 잘못되었거나 네트워크 문제가 있을 수 있어요.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <button
-            className="btn-primary w-full justify-center"
-            onClick={onRetry}
-          >
+          <button className="btn-primary w-full justify-center" onClick={onRetry}>
             <RefreshCw size={15} />
             다시 시도
           </button>
@@ -144,7 +139,6 @@ function LoadErrorScreen({
   );
 }
 
-// ── 프로젝트 미존재 화면 ──────────────────────────────────────────
 function NotFoundScreen() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
@@ -163,7 +157,7 @@ function NotFoundScreen() {
           </Link>
           <Link className="btn-ghost w-full justify-center" href="/">
             <ArrowLeft size={15} />
-            초대 링크 다시 입력
+            처음으로 돌아가기
           </Link>
         </div>
       </section>
@@ -171,7 +165,66 @@ function NotFoundScreen() {
   );
 }
 
-// ── 빈 장소 상태 ──────────────────────────────────────────────────
+function AccessDeniedScreen() {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <section className="card w-full max-w-sm p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+          <span className="text-2xl">🔒</span>
+        </div>
+        <h1 className="title">이 먹킷맵에 접근할 수 없어요</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          초대받은 계정으로 로그인했는지 확인해주세요.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            className="btn-primary w-full justify-center"
+            href={`/auth?returnTo=${encodeURIComponent(
+              typeof window !== "undefined" ? window.location.pathname : "/"
+            )}`}
+          >
+            <LogIn size={15} />
+            로그인 계정 변경
+          </Link>
+          <Link className="btn-ghost w-full justify-center" href="/">
+            <Home size={15} />
+            처음으로 돌아가기
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function NeedLoginScreen({ projectId }: { projectId: string }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <section className="card w-full max-w-sm p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+          <LogIn size={22} className="text-emerald-600" />
+        </div>
+        <h1 className="title">로그인이 필요해요</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          먹킷맵은 초대받은 멤버만 볼 수 있어요.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Link
+            className="btn-primary w-full justify-center"
+            href={`/auth?returnTo=/projects/${projectId}`}
+          >
+            <LogIn size={15} />
+            로그인 / 회원가입
+          </Link>
+          <Link className="btn-ghost w-full justify-center" href="/">
+            <Home size={15} />
+            처음으로 돌아가기
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function EmptyPlacesState({ onAddPlace }: { onAddPlace: () => void }) {
   return (
     <div className="panel flex flex-col items-center px-6 py-12 text-center">
@@ -188,7 +241,6 @@ function EmptyPlacesState({ onAddPlace }: { onAddPlace: () => void }) {
   );
 }
 
-// ── 온보딩 시트 내용 ──────────────────────────────────────────────
 function OnboardingContent({
   onSubmit
 }: {
@@ -200,8 +252,6 @@ function OnboardingContent({
         <h2 className="title">먹킷맵에 오신 걸 환영해요 👋</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
           지도에서 사용할 닉네임과 마커 색상을 정해주세요.
-          <br />
-          친구들이 누가 추천했는지 색깔로 알아볼 수 있어요.
         </p>
       </div>
       <MemberForm onSubmit={onSubmit} />
@@ -210,8 +260,11 @@ function OnboardingContent({
 }
 
 // ── 메인 컨텐츠 ───────────────────────────────────────────────────
+
 function ProjectContent({ projectId }: ProjectPageClientProps) {
   const toast = useToast();
+  const { user, authLoading, signOut } = useAuth();
+
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [places, setPlaces] = useState<Place[]>([]);
@@ -221,12 +274,26 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [sheet, setSheet] = useState<SheetMode>({ kind: "closed" });
   const [copied, setCopied] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
 
-  // 온보딩을 이미 보여줬는지 추적 (새로고침마다 다시 뜨지 않도록)
   const onboardingShownRef = useRef(false);
-  // 진행 중 요청 취소용
   const activeRef = useRef(true);
   const tidRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 현재 로그인 유저의 멤버 레코드 (권한 확인용)
+  const myMember = useMemo(
+    () => members.find((m) => m.userId === user?.id) ?? null,
+    [members, user]
+  );
+
+  // 권한 헬퍼
+  const isAdmin = myMember?.role === "admin";
+  const canEdit =
+    !isSupabaseConfigured() || // 로컬 모드는 제한 없음
+    myMember?.role === "admin" ||
+    myMember?.role === "member";
+  const isViewer = isSupabaseConfigured() && myMember?.role === "viewer";
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
   const refreshProject = useCallback(async () => {
@@ -234,11 +301,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     activeRef.current = true;
     setLoadStatus("loading");
 
-    // 5초 타임아웃
     tidRef.current = setTimeout(() => {
       if (!activeRef.current) return;
       activeRef.current = false;
-      console.error("[먹킷맵] 프로젝트 로딩 타임아웃:", projectId);
       setLoadStatus("timeout");
     }, LOAD_TIMEOUT_MS);
 
@@ -249,29 +314,32 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       setProject(bundle.project);
       setMembers(bundle.members);
       setPlaces(bundle.places);
+      setInviteCode(bundle.project?.inviteCode ?? null);
       setLoadStatus("loaded");
     } catch (error) {
       clearTimeout(tidRef.current!);
       if (!activeRef.current) return;
-      console.error("[먹킷맵] 프로젝트 로딩 실패:", error);
-      toast.show({
-        title: "지도 데이터를 불러오지 못했어요",
-        description: getErrorMessage(error),
-        tone: "error"
-      });
-      setLoadStatus("network-error");
+      const msg = getErrorMessage(error);
+      if (msg === "ACCESS_DENIED") {
+        setLoadStatus("access-denied");
+      } else {
+        console.error("[먹킷맵]", error);
+        setLoadStatus("network-error");
+      }
     }
-  }, [projectId, toast]);
+  }, [projectId]);
 
   useEffect(() => {
+    // Supabase 모드: auth 로딩이 끝난 뒤 로딩
+    if (isSupabaseConfigured() && authLoading) return;
     refreshProject();
     return () => {
       activeRef.current = false;
       if (tidRef.current) clearTimeout(tidRef.current);
     };
-  }, [refreshProject]);
+  }, [refreshProject, authLoading]);
 
-  // ── 멤버 0명이면 온보딩 모달 자동 오픈 ───────────────────
+  // 멤버 0명이면 온보딩 모달 자동 오픈
   useEffect(() => {
     if (
       loadStatus === "loaded" &&
@@ -287,14 +355,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   // ── 필터 ─────────────────────────────────────────────────
   const filteredPlaces = useMemo(
     () =>
-      places.filter((place) => {
-        const memberMatches =
-          filters.memberId === "전체" || place.memberId === filters.memberId;
-        const categoryMatches =
-          filters.category === "전체" || place.category === filters.category;
-        const tagMatches =
-          filters.tag === "전체" || place.tags.includes(filters.tag);
-        return memberMatches && categoryMatches && tagMatches;
+      places.filter((p) => {
+        const memberOk = filters.memberId === "전체" || p.memberId === filters.memberId;
+        const catOk = filters.category === "전체" || p.category === filters.category;
+        const tagOk = filters.tag === "전체" || p.tags.includes(filters.tag);
+        return memberOk && catOk && tagOk;
       }),
     [filters, places]
   );
@@ -314,43 +379,28 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       : null;
 
   useEffect(() => {
-    if (selectedPlaceId && !filteredPlaces.some((p) => p.id === selectedPlaceId)) {
+    if (selectedPlaceId && !filteredPlaces.some((p) => p.id === selectedPlaceId))
       setSelectedPlaceId(null);
-    }
   }, [filteredPlaces, selectedPlaceId]);
 
-  // ── 이벤트 핸들러 ──────────────────────────────────────────
-  function handleSelectPlace(placeId: string) {
-    setSelectedPlaceId(placeId);
-  }
-
-  function handleOpenDetail(placeId: string) {
-    setSelectedPlaceId(placeId);
-    setSheet({ kind: "place-detail", placeId });
-  }
-
+  // ── 핸들러 ──────────────────────────────────────────────
   async function handleAddMember(
     input: Parameters<typeof createMember>[1],
-    closeSheetAfter = false
+    closeAfter = false
   ) {
     try {
-      await createMember(projectId, input);
+      await createMember(projectId, input, user?.id ?? undefined);
       await refreshProject();
-      if (closeSheetAfter) setSheet({ kind: "closed" });
+      if (closeAfter) setSheet({ kind: "closed" });
       toast.show({ title: "참여자가 추가됐어요", tone: "success" });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.show({
         title: "참여자 추가에 실패했어요",
-        description: getErrorMessage(error),
+        description: getErrorMessage(err),
         tone: "error"
       });
     }
-  }
-
-  // 온보딩 전용: 추가 후 시트를 닫음
-  function handleOnboardingSubmit(input: Parameters<typeof createMember>[1]) {
-    handleAddMember(input, true);
   }
 
   async function handleDeleteMember(member: Member) {
@@ -358,16 +408,12 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       await deleteMember(member.id);
       setSelectedPlaceId(null);
       await refreshProject();
-      toast.show({
-        title: `${member.nickname} 참여자를 삭제했어요`,
-        description: "이 참여자가 등록한 장소도 함께 삭제됐습니다.",
-        tone: "info"
-      });
-    } catch (error) {
-      console.error(error);
+      toast.show({ title: `${member.nickname} 참여자를 삭제했어요`, tone: "info" });
+    } catch (err) {
+      console.error(err);
       toast.show({
         title: "참여자 삭제에 실패했어요",
-        description: getErrorMessage(error),
+        description: getErrorMessage(err),
         tone: "error"
       });
     }
@@ -375,12 +421,10 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   async function handleSubmitPlace(input: PlaceCreateInput) {
     const targetEditing = editingPlace;
-
     try {
       const saved = targetEditing
         ? await updatePlace(targetEditing.id, input)
         : await createPlace(projectId, input);
-
       await refreshProject();
       setPickedLocation(null);
       if (saved) {
@@ -393,11 +437,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         title: targetEditing ? "장소를 수정했어요" : "장소를 추가했어요",
         tone: "success"
       });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.show({
         title: targetEditing ? "장소 수정에 실패했어요" : "장소 추가에 실패했어요",
-        description: getErrorMessage(error),
+        description: getErrorMessage(err),
         tone: "error"
       });
     }
@@ -407,30 +451,21 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     try {
       await deletePlace(place.id);
       if (selectedPlaceId === place.id) setSelectedPlaceId(null);
-      if (sheet.kind === "place-edit" && sheet.placeId === place.id)
-        setSheet({ kind: "closed" });
-      if (sheet.kind === "place-detail" && sheet.placeId === place.id)
+      if (
+        (sheet.kind === "place-edit" || sheet.kind === "place-detail") &&
+        sheet.placeId === place.id
+      )
         setSheet({ kind: "closed" });
       await refreshProject();
       toast.show({ title: `${place.name}을(를) 삭제했어요`, tone: "info" });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
       toast.show({
         title: "장소 삭제에 실패했어요",
-        description: getErrorMessage(error),
+        description: getErrorMessage(err),
         tone: "error"
       });
     }
-  }
-
-  function startEditPlace(place: Place) {
-    setPickedLocation(null);
-    setSheet({ kind: "place-edit", placeId: place.id });
-  }
-
-  function startCreatePlace() {
-    setPickedLocation(null);
-    setSheet({ kind: "place-create" });
   }
 
   async function handleShare() {
@@ -438,33 +473,79 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     try {
       await navigator.clipboard.writeText(url);
     } catch {
-      const textArea = document.createElement("textarea");
-      textArea.value = url;
-      document.body.appendChild(textArea);
-      textArea.select();
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
       document.execCommand("copy");
-      document.body.removeChild(textArea);
+      document.body.removeChild(ta);
     }
     setCopied(true);
     toast.show({ title: "공유 링크를 복사했어요", tone: "success" });
-    window.setTimeout(() => setCopied(false), 1600);
+    setTimeout(() => setCopied(false), 1600);
   }
 
-  // ── 로딩 / 에러 화면 분기 ──────────────────────────────────
-  if (loadStatus === "loading") {
+  // 초대 링크 생성/재생성
+  async function handleGenerateInvite() {
+    if (!isAdmin) return;
+    setGeneratingInvite(true);
+    try {
+      const code = await regenerateInviteCode(projectId);
+      setInviteCode(code);
+      const inviteUrl = `${window.location.origin}/invite/${code}`;
+      await navigator.clipboard.writeText(inviteUrl).catch(() => {});
+      toast.show({
+        title: "초대 링크를 생성했어요",
+        description: "클립보드에 복사됐어요.",
+        tone: "success"
+      });
+    } catch (err) {
+      console.error(err);
+      toast.show({ title: "초대 링크 생성에 실패했어요", tone: "error" });
+    } finally {
+      setGeneratingInvite(false);
+    }
+  }
+
+  async function handleCopyInvite() {
+    if (!inviteCode) return;
+    const inviteUrl = `${window.location.origin}/invite/${inviteCode}`;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = inviteUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast.show({ title: "초대 링크를 복사했어요", tone: "success" });
+  }
+
+  // ── 화면 분기 ──────────────────────────────────────────────
+
+  // Supabase 모드: 로그인 안 됐으면 로그인 유도
+  if (isSupabaseConfigured() && !authLoading && !user) {
+    return <NeedLoginScreen projectId={projectId} />;
+  }
+
+  if (loadStatus === "loading" || (isSupabaseConfigured() && authLoading)) {
     return <LoadingScreen />;
+  }
+
+  if (loadStatus === "access-denied") {
+    return <AccessDeniedScreen />;
   }
 
   if (loadStatus === "timeout" || loadStatus === "network-error") {
     return <LoadErrorScreen onRetry={refreshProject} />;
   }
 
-  // loaded 상태에서 project가 null → 잘못된 ID
   if (loadStatus === "loaded" && !project) {
     return <NotFoundScreen />;
   }
 
-  // 여기서부터 project는 확실히 존재
   if (!project) return null;
 
   const hasNoPlaces = places.length === 0;
@@ -474,12 +555,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       {/* ── Topbar ────────────────────────────────────────── */}
       <header className="sticky top-0 z-[500] border-b border-[var(--border)] bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1680px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
-          <Link
-            className="icon-button"
-            href="/"
-            title="프로젝트 목록"
-            aria-label="프로젝트 목록으로"
-          >
+          <Link className="icon-button" href="/" aria-label="프로젝트 목록으로">
             <ArrowLeft size={17} />
           </Link>
 
@@ -497,6 +573,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             </p>
           </div>
 
+          {/* 참여자 */}
           <button
             className="chip"
             onClick={() => setSheet({ kind: "members" })}
@@ -507,6 +584,25 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             {members.length}명
           </button>
 
+          {/* 초대 링크 (admin) */}
+          {isAdmin && (
+            <button
+              className="btn-ghost"
+              onClick={inviteCode ? handleCopyInvite : handleGenerateInvite}
+              disabled={generatingInvite}
+              title="초대 링크"
+              type="button"
+            >
+              {generatingInvite ? (
+                <RotateCcw size={16} className="animate-spin" />
+              ) : (
+                <Link2 size={16} />
+              )}
+              <span className="hidden sm:inline">초대</span>
+            </button>
+          )}
+
+          {/* 공유 */}
           <button
             className={copied ? "btn-soft" : "btn-ghost"}
             onClick={handleShare}
@@ -517,7 +613,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
           </button>
         </div>
 
-        {/* Filter chip bar */}
+        {/* 필터 */}
         <div className="border-t border-[var(--border-soft)] bg-white/70">
           <div className="mx-auto max-w-[1680px] px-4 py-3 sm:px-6 lg:px-10">
             <FilterBar
@@ -532,44 +628,64 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
       {/* ── Workspace ─────────────────────────────────────── */}
       {hasNoPlaces ? (
-        /* 장소가 하나도 없을 때: 지도 + 빈 상태 안내 */
-        <div className="mx-auto max-w-[1680px] gap-5 px-4 py-5 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-[1680px] px-4 py-5 sm:px-6 lg:px-10">
           <SelectedMapView
             members={members}
-            onPickLocation={(location) => {
-              setPickedLocation(location);
-              setSelectedPlaceId(null);
-              setSheet({ kind: "place-create" });
+            onPickLocation={
+              canEdit
+                ? (location) => {
+                    setPickedLocation(location);
+                    setSelectedPlaceId(null);
+                    setSheet({ kind: "place-create" });
+                  }
+                : undefined
+            }
+            onSelectPlace={setSelectedPlaceId}
+            onOpenDetail={(id) => {
+              setSelectedPlaceId(id);
+              setSheet({ kind: "place-detail", placeId: id });
             }}
-            onSelectPlace={handleSelectPlace}
-            onOpenDetail={handleOpenDetail}
             places={[]}
             selectedPlaceId={null}
           />
-          <div className="mt-5">
-            <EmptyPlacesState onAddPlace={startCreatePlace} />
-          </div>
+          {canEdit && (
+            <div className="mt-5">
+              <EmptyPlacesState onAddPlace={() => setSheet({ kind: "place-create" })} />
+            </div>
+          )}
         </div>
       ) : (
         <div className="mx-auto grid max-w-[1680px] gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_440px] lg:px-10">
           <SelectedMapView
             members={members}
-            onPickLocation={(location) => {
-              setPickedLocation(location);
-              setSelectedPlaceId(null);
-              setSheet({ kind: "place-create" });
+            onPickLocation={
+              canEdit
+                ? (location) => {
+                    setPickedLocation(location);
+                    setSelectedPlaceId(null);
+                    setSheet({ kind: "place-create" });
+                  }
+                : undefined
+            }
+            onSelectPlace={setSelectedPlaceId}
+            onOpenDetail={(id) => {
+              setSelectedPlaceId(id);
+              setSheet({ kind: "place-detail", placeId: id });
             }}
-            onSelectPlace={handleSelectPlace}
-            onOpenDetail={handleOpenDetail}
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
           />
-
           <PlaceList
             members={members}
-            onDelete={handleDeletePlace}
-            onEdit={startEditPlace}
-            onSelect={handleOpenDetail}
+            onDelete={canEdit ? handleDeletePlace : undefined}
+            onEdit={canEdit ? (p) => {
+              setPickedLocation(null);
+              setSheet({ kind: "place-edit", placeId: p.id });
+            } : undefined}
+            onSelect={(id) => {
+              setSelectedPlaceId(id);
+              setSheet({ kind: "place-detail", placeId: id });
+            }}
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
             totalCount={places.length}
@@ -577,26 +693,31 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         </div>
       )}
 
-      {/* ── FAB ───────────────────────────────────────────── */}
-      <button
-        className="fab fixed bottom-6 right-6 z-[600]"
-        onClick={startCreatePlace}
-        type="button"
-        aria-label="장소 추가"
-      >
-        <Plus size={18} />
-        장소 추가
-      </button>
+      {/* ── FAB (편집 권한 있을 때만) ────────────────────── */}
+      {canEdit && (
+        <button
+          className="fab fixed bottom-6 right-6 z-[600]"
+          onClick={() => {
+            setPickedLocation(null);
+            setSheet({ kind: "place-create" });
+          }}
+          type="button"
+          aria-label="장소 추가"
+        >
+          <Plus size={18} />
+          장소 추가
+        </button>
+      )}
 
       {/* ── Sheets ────────────────────────────────────────── */}
 
-      {/* 온보딩: 닉네임·마커색 설정 */}
+      {/* 온보딩 */}
       <Sheet
         open={sheet.kind === "onboarding"}
         onClose={() => setSheet({ kind: "closed" })}
         title="내 정보 설정"
       >
-        <OnboardingContent onSubmit={handleOnboardingSubmit} />
+        <OnboardingContent onSubmit={(input) => handleAddMember(input, true)} />
       </Sheet>
 
       {/* 참여자 관리 */}
@@ -607,15 +728,60 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         description="참여자별 색상으로 마커가 구분돼요."
       >
         <div className="space-y-6">
-          <MemberList members={members} onDelete={handleDeleteMember} />
-          <div className="border-t border-[var(--border-soft)] pt-6">
-            <p className="caption mb-3">새 참여자</p>
-            <MemberForm onSubmit={(input) => handleAddMember(input)} />
-          </div>
+          <MemberList
+            members={members}
+            onDelete={isAdmin ? handleDeleteMember : undefined}
+          />
+          {/* 초대 링크 섹션 (admin) */}
+          {isAdmin && isSupabaseConfigured() && (
+            <div className="rounded-xl border border-[var(--border-soft)] p-4">
+              <p className="caption mb-2">초대 링크</p>
+              {inviteCode ? (
+                <div className="flex flex-col gap-2">
+                  <code className="block truncate rounded-lg bg-slate-50 px-3 py-2 text-[12px] font-mono text-slate-600">
+                    {`${typeof window !== "undefined" ? window.location.origin : ""}/invite/${inviteCode}`}
+                  </code>
+                  <div className="flex gap-2">
+                    <button className="btn-ghost flex-1 justify-center text-[13px]" onClick={handleCopyInvite}>
+                      <Link2 size={13} />
+                      복사
+                    </button>
+                    <button
+                      className="btn-ghost flex-1 justify-center text-[13px] text-red-500 hover:border-red-200 hover:bg-red-50"
+                      onClick={handleGenerateInvite}
+                      disabled={generatingInvite}
+                    >
+                      <RotateCcw size={13} />
+                      재생성
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    재생성하면 기존 링크는 무효화돼요.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  className="btn-primary w-full justify-center text-[13px]"
+                  onClick={handleGenerateInvite}
+                  disabled={generatingInvite}
+                >
+                  <Link2 size={13} />
+                  초대 링크 생성
+                </button>
+              )}
+            </div>
+          )}
+          {/* admin만 새 참여자 직접 추가 */}
+          {isAdmin && (
+            <div className="border-t border-[var(--border-soft)] pt-6">
+              <p className="caption mb-3">새 참여자 직접 추가</p>
+              <MemberForm onSubmit={(input) => handleAddMember(input)} />
+            </div>
+          )}
         </div>
       </Sheet>
 
-      {/* 장소 추가 / 수정 */}
+      {/* 장소 추가/수정 */}
       <Sheet
         open={sheet.kind === "place-create" || sheet.kind === "place-edit"}
         onClose={() => {
@@ -630,13 +796,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         }
         width={520}
       >
-        {editingPlace ? null : (
+        {!editingPlace && (
           <div className="mb-6">
-            <NaverPlaceSearch
-              onPickPlace={(location) => {
-                setPickedLocation(location);
-              }}
-            />
+            <NaverPlaceSearch onPickPlace={(loc) => setPickedLocation(loc)} />
           </div>
         )}
         <PlaceForm
@@ -658,16 +820,18 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         onClose={() => setSheet({ kind: "closed" })}
         title="장소 상세"
       >
-        {detailPlace ? (
+        {detailPlace && (
           <PlaceDetailCard
             member={getMemberForPlace(detailPlace, members)}
-            onEdit={() =>
-              setSheet({ kind: "place-edit", placeId: detailPlace.id })
+            onEdit={
+              canEdit
+                ? () => setSheet({ kind: "place-edit", placeId: detailPlace.id })
+                : undefined
             }
-            onDelete={() => handleDeletePlace(detailPlace)}
+            onDelete={canEdit ? () => handleDeletePlace(detailPlace) : undefined}
             place={detailPlace}
           />
-        ) : null}
+        )}
       </Sheet>
     </main>
   );

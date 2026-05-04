@@ -90,6 +90,7 @@ export function createProject(input: ProjectCreateInput) {
     id: createId("project"),
     name: input.name.trim(),
     description: input.description.trim(),
+    inviteCode: null,
     createdAt: nowIso()
   };
 
@@ -116,6 +117,7 @@ export function createMember(projectId: string, input: MemberCreateInput) {
   const member: Member = {
     id: createId("member"),
     projectId,
+    userId: null,
     nickname: input.nickname.trim(),
     markerColor: input.markerColor,
     role: input.role,
@@ -226,6 +228,7 @@ export function seedSampleData() {
     id: projectId,
     name: "부산 친구 맛집지도",
     description: "친구들이 각자 추천한 부산 맛집, 카페, 술집, 디저트를 한 지도에 모았습니다.",
+    inviteCode: null,
     createdAt
   };
 
@@ -233,6 +236,7 @@ export function seedSampleData() {
     {
       id: createId("member"),
       projectId,
+      userId: null,
       nickname: "라면",
       markerColor: "#ef4444",
       role: "admin",
@@ -241,6 +245,7 @@ export function seedSampleData() {
     {
       id: createId("member"),
       projectId,
+      userId: null,
       nickname: "워렌",
       markerColor: "#3b82f6",
       role: "member",
@@ -249,6 +254,7 @@ export function seedSampleData() {
     {
       id: createId("member"),
       projectId,
+      userId: null,
       nickname: "존슨",
       markerColor: "#22c55e",
       role: "member",
@@ -257,6 +263,7 @@ export function seedSampleData() {
     {
       id: createId("member"),
       projectId,
+      userId: null,
       nickname: "베일",
       markerColor: "#f59e0b",
       role: "member",

@@ -7,7 +7,7 @@ import { getMemberColor } from "@/lib/utils";
 type PlaceDetailCardProps = {
   place: Place;
   member?: Member;
-  onEdit: () => void;
+  onEdit?: () => void;
   onDelete?: () => void;
 };
 
@@ -69,10 +69,12 @@ export function PlaceDetailCard({
           <ExternalLink size={16} />
           지도 보기
         </a>
-        <button className="btn-ghost" onClick={onEdit} type="button">
-          <Pencil size={15} />
-          수정
-        </button>
+        {onEdit ? (
+          <button className="btn-ghost" onClick={onEdit} type="button">
+            <Pencil size={15} />
+            수정
+          </button>
+        ) : null}
         {onDelete ? (
           <button className="btn-danger" onClick={onDelete} type="button">
             <Trash2 size={15} />

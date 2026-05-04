@@ -8,18 +8,22 @@ export const PLACE_CATEGORIES = [
 ] as const;
 
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
-export type MemberRole = "admin" | "member";
+export type MemberRole = "admin" | "member" | "viewer";
 
 export type Project = {
   id: string;
   name: string;
   description: string;
+  /** Supabase 사용 시에만 존재. 초대 링크 코드 */
+  inviteCode: string | null;
   createdAt: string;
 };
 
 export type Member = {
   id: string;
   projectId: string;
+  /** Supabase Auth user.id. 로컬스토리지 모드에서는 null */
+  userId: string | null;
   nickname: string;
   markerColor: string;
   role: MemberRole;

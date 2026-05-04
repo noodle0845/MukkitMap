@@ -5,7 +5,7 @@ import type { Member } from "@/lib/types";
 
 type MemberListProps = {
   members: Member[];
-  onDelete: (member: Member) => void;
+  onDelete?: (member: Member) => void;
 };
 
 export function MemberList({ members, onDelete }: MemberListProps) {
@@ -43,15 +43,17 @@ export function MemberList({ members, onDelete }: MemberListProps) {
             </div>
           </div>
 
-          <button
-            className="icon-button h-8 w-8 shrink-0 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-red-200 hover:bg-[var(--danger-soft)] hover:text-red-500"
-            onClick={() => onDelete(member)}
-            title={`${member.nickname} 삭제`}
-            type="button"
-            aria-label={`${member.nickname} 삭제`}
-          >
-            <Trash2 size={15} />
-          </button>
+          {onDelete ? (
+            <button
+              className="icon-button h-8 w-8 shrink-0 text-slate-400 opacity-0 transition group-hover:opacity-100 hover:border-red-200 hover:bg-[var(--danger-soft)] hover:text-red-500"
+              onClick={() => onDelete(member)}
+              title={`${member.nickname} 삭제`}
+              type="button"
+              aria-label={`${member.nickname} 삭제`}
+            >
+              <Trash2 size={15} />
+            </button>
+          ) : null}
         </li>
       ))}
     </ul>

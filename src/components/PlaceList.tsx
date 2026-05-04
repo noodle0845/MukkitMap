@@ -10,8 +10,8 @@ type PlaceListProps = {
   members: Member[];
   selectedPlaceId: string | null;
   onSelect: (placeId: string) => void;
-  onEdit: (place: Place) => void;
-  onDelete: (place: Place) => void;
+  onEdit?: (place: Place) => void;
+  onDelete?: (place: Place) => void;
   totalCount?: number;
 };
 
@@ -126,17 +126,12 @@ export function PlaceList({
                             window.open(place.naverMapUrl, "_blank", "noopener,noreferrer");
                           }
                         },
-                        {
-                          label: "수정",
-                          icon: <Edit3 size={14} />,
-                          onSelect: () => onEdit(place)
-                        },
-                        {
-                          label: "삭제",
-                          icon: <Trash2 size={14} />,
-                          danger: true,
-                          onSelect: () => onDelete(place)
-                        }
+                        ...(onEdit
+                          ? [{ label: "수정", icon: <Edit3 size={14} />, onSelect: () => onEdit(place) }]
+                          : []),
+                        ...(onDelete
+                          ? [{ label: "삭제", icon: <Trash2 size={14} />, danger: true as const, onSelect: () => onDelete(place) }]
+                          : [])
                       ]}
                     />
                   </div>

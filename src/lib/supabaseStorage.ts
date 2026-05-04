@@ -1,3 +1,11 @@
+/**
+ * supabaseStorage.ts
+ *
+ * Supabase 설정 여부에 따라 두 가지 저장소 중 하나를 사용합니다.
+ *  - Supabase 설정 O → @supabase/supabase-js 클라이언트 (RLS + Auth 포함)
+ *  - Supabase 설정 X → 로컬스토리지 (개발/데모용)
+ */
+
 import * as localStore from "@/lib/storage";
 import type {
   Member,
@@ -9,17 +17,22 @@ import type {
   ProjectCreateInput
 } from "@/lib/types";
 import { nowIso } from "@/lib/utils";
+import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabaseClient";
+
+// ── Row 타입 (Supabase DB 컬럼명) ─────────────────────────────────
 
 type ProjectRow = {
   id: string;
   name: string;
   description: string | null;
+  invite_code: string | null;
   created_at: string;
 };
 
 type MemberRow = {
   id: string;
   project_id: string;
+  user_id: string | null;
   nickname: string;
   marker_color: string;
   role: Member["role"];
@@ -42,23 +55,14 @@ type PlaceRow = {
   updated_at: string;
 };
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-export function isSupabaseConfigured() {
-  return Boolean(
-    SUPABASE_URL?.startsWith("https://") &&
-      SUPABASE_ANON_KEY &&
-      !SUPABASE_URL.includes("your_") &&
-      !SUPABASE_ANON_KEY.includes("your_")
-  );
-}
+// ── Mapper ────────────────────────────────────────────────────────
 
 function mapProject(row: ProjectRow): Project {
   return {
     id: row.id,
     name: row.name,
     description: row.description ?? "",
+    inviteCode: row.invite_code ?? null,
     createdAt: row.created_at
   };
 }
@@ -67,6 +71,7 @@ function mapMember(row: MemberRow): Member {
   return {
     id: row.id,
     projectId: row.project_id,
+    userId: row.user_id ?? null,
     nickname: row.nickname,
     markerColor: row.marker_color,
     role: row.role,
@@ -92,54 +97,28 @@ function mapPlace(row: PlaceRow): Place {
   };
 }
 
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  prefer = "return=representation"
-): Promise<T> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error("Supabase 환경변수가 없습니다.");
-  }
+// ── 헬퍼 ──────────────────────────────────────────────────────────
 
-  const authHeaders: Record<string, string> = {
-    apikey: SUPABASE_ANON_KEY
-  };
-
-  if (!SUPABASE_ANON_KEY.startsWith("sb_publishable_")) {
-    authHeaders.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
-  }
-
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      ...authHeaders,
-      "Content-Type": "application/json",
-      Prefer: prefer,
-      ...(init.headers ?? {})
-    }
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Supabase 요청에 실패했습니다. (${response.status})`);
-  }
-
-  if (response.status === 204) {
-    return null as T;
-  }
-
-  return response.json() as Promise<T>;
+function supabase() {
+  return getSupabaseClient();
 }
 
-export async function getProjects() {
-  if (!isSupabaseConfigured()) {
-    return localStore.getProjects();
-  }
+function throwOnError(error: { message?: string } | null, fallback = "알 수 없는 오류") {
+  if (error) throw new Error(error.message ?? fallback);
+}
 
-  const rows = await request<ProjectRow[]>(
-    "projects?select=*&order=created_at.desc"
-  );
-  return rows.map(mapProject);
+// ── Projects ──────────────────────────────────────────────────────
+
+export async function getProjects(): Promise<Project[]> {
+  if (!isSupabaseConfigured()) return localStore.getProjects();
+
+  const { data, error } = await supabase()
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  throwOnError(error);
+  return (data as ProjectRow[]).map(mapProject);
 }
 
 export async function getProjectCounts(
@@ -148,27 +127,27 @@ export async function getProjectCounts(
   if (!isSupabaseConfigured()) {
     const store = localStore.getStore();
     return Object.fromEntries(
-      projects.map((project) => [
-        project.id,
+      projects.map((p) => [
+        p.id,
         {
-          memberCount: store.members.filter((m) => m.projectId === project.id).length,
-          placeCount: store.places.filter((p) => p.projectId === project.id).length
+          memberCount: store.members.filter((m) => m.projectId === p.id).length,
+          placeCount: store.places.filter((pl) => pl.projectId === p.id).length
         }
       ])
     );
   }
 
-  const [members, places] = await Promise.all([
-    request<Array<{ project_id: string }>>("members?select=project_id"),
-    request<Array<{ project_id: string }>>("places?select=project_id")
+  const [{ data: members }, { data: places }] = await Promise.all([
+    supabase().from("members").select("project_id"),
+    supabase().from("places").select("project_id")
   ]);
 
   return Object.fromEntries(
-    projects.map((project) => [
-      project.id,
+    projects.map((p) => [
+      p.id,
       {
-        memberCount: members.filter((m) => m.project_id === project.id).length,
-        placeCount: places.filter((p) => p.project_id === project.id).length
+        memberCount: (members ?? []).filter((m) => m.project_id === p.id).length,
+        placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length
       }
     ])
   );
@@ -183,172 +162,251 @@ export async function getProjectBundle(projectId: string) {
     };
   }
 
-  const encodedId = encodeURIComponent(projectId);
-  const [projectRows, memberRows, placeRows] = await Promise.all([
-    request<ProjectRow[]>(`projects?select=*&id=eq.${encodedId}&limit=1`),
-    request<MemberRow[]>(
-      `members?select=*&project_id=eq.${encodedId}&order=created_at.asc`
-    ),
-    request<PlaceRow[]>(
-      `places?select=*&project_id=eq.${encodedId}&order=updated_at.desc`
-    )
+  const [
+    { data: projectRows, error: pErr },
+    { data: memberRows, error: mErr },
+    { data: placeRows, error: plErr }
+  ] = await Promise.all([
+    supabase().from("projects").select("*").eq("id", projectId).limit(1),
+    supabase()
+      .from("members")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("created_at", { ascending: true }),
+    supabase()
+      .from("places")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("updated_at", { ascending: false })
   ]);
 
+  // RLS가 막으면 빈 배열이 오거나 에러가 옴
+  if (pErr) throw new Error(pErr.message);
+
+  const project = projectRows?.[0] ? mapProject(projectRows[0] as ProjectRow) : null;
+
+  // 프로젝트가 없으면 null 반환 (NotFoundScreen 표시용)
+  if (!project) {
+    return { project: null, members: [], places: [] };
+  }
+
+  // 멤버/장소 에러는 접근 권한 없음으로 처리
+  if (mErr?.code === "42501" || plErr?.code === "42501") {
+    throw new Error("ACCESS_DENIED");
+  }
+
   return {
-    project: projectRows[0] ? mapProject(projectRows[0]) : null,
-    members: memberRows.map(mapMember),
-    places: placeRows.map(mapPlace)
+    project,
+    members: (memberRows as MemberRow[] ?? []).map(mapMember),
+    places: (placeRows as PlaceRow[] ?? []).map(mapPlace)
   };
 }
 
-export async function createProject(input: ProjectCreateInput) {
-  if (!isSupabaseConfigured()) {
-    return localStore.createProject(input);
-  }
+export async function createProject(input: ProjectCreateInput): Promise<Project> {
+  if (!isSupabaseConfigured()) return localStore.createProject(input);
 
-  const rows = await request<ProjectRow[]>(
-    "projects",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        name: input.name.trim(),
-        description: input.description.trim()
-      })
-    }
-  );
+  const { data, error } = await supabase()
+    .from("projects")
+    .insert({ name: input.name.trim(), description: input.description.trim() })
+    .select()
+    .single();
 
-  return mapProject(rows[0]);
+  throwOnError(error);
+  return mapProject(data as ProjectRow);
 }
 
-export async function deleteProject(projectId: string) {
+export async function deleteProject(projectId: string): Promise<void> {
   if (!isSupabaseConfigured()) {
     localStore.deleteProject(projectId);
     return;
   }
 
-  await request(
-    `projects?id=eq.${encodeURIComponent(projectId)}`,
-    { method: "DELETE" },
-    "return=minimal"
-  );
+  const { error } = await supabase()
+    .from("projects")
+    .delete()
+    .eq("id", projectId);
+
+  throwOnError(error);
 }
 
-export async function createMember(projectId: string, input: MemberCreateInput) {
-  if (!isSupabaseConfigured()) {
-    return localStore.createMember(projectId, input);
-  }
+// ── Invite Code ───────────────────────────────────────────────────
 
-  const rows = await request<MemberRow[]>(
-    "members",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        project_id: projectId,
-        nickname: input.nickname.trim(),
-        marker_color: input.markerColor,
-        role: input.role
-      })
-    }
-  );
+/** 초대 코드를 새로 발급(재생성)하고 반환 */
+export async function regenerateInviteCode(projectId: string): Promise<string> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase가 필요합니다.");
 
-  return mapMember(rows[0]);
+  // crypto.randomUUID() 또는 random 문자열로 생성
+  const code =
+    typeof crypto !== "undefined"
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2, 14);
+
+  const { data, error } = await supabase()
+    .from("projects")
+    .update({ invite_code: code })
+    .eq("id", projectId)
+    .select("invite_code")
+    .single();
+
+  throwOnError(error);
+  return (data as { invite_code: string }).invite_code;
 }
 
-export async function deleteMember(memberId: string) {
+/** 초대 코드로 프로젝트 조회 (로그인 없이도 접근 가능하도록 RLS 설정 필요) */
+export async function getProjectByInviteCode(
+  code: string
+): Promise<Project | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase()
+    .from("projects")
+    .select("*")
+    .eq("invite_code", code)
+    .limit(1);
+
+  throwOnError(error);
+  if (!data || data.length === 0) return null;
+  return mapProject(data[0] as ProjectRow);
+}
+
+/** 현재 로그인 유저가 이미 해당 프로젝트 멤버인지 확인 */
+export async function checkMembership(
+  projectId: string,
+  userId: string
+): Promise<Member | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data } = await supabase()
+    .from("members")
+    .select("*")
+    .eq("project_id", projectId)
+    .eq("user_id", userId)
+    .limit(1);
+
+  if (!data || data.length === 0) return null;
+  return mapMember(data[0] as MemberRow);
+}
+
+// ── Members ───────────────────────────────────────────────────────
+
+export async function createMember(
+  projectId: string,
+  input: MemberCreateInput,
+  userId?: string
+): Promise<Member> {
+  if (!isSupabaseConfigured()) return localStore.createMember(projectId, input);
+
+  const { data, error } = await supabase()
+    .from("members")
+    .insert({
+      project_id: projectId,
+      user_id: userId ?? null,
+      nickname: input.nickname.trim(),
+      marker_color: input.markerColor,
+      role: input.role
+    })
+    .select()
+    .single();
+
+  throwOnError(error);
+  return mapMember(data as MemberRow);
+}
+
+export async function deleteMember(memberId: string): Promise<void> {
   if (!isSupabaseConfigured()) {
     localStore.deleteMember(memberId);
     return;
   }
 
-  const encodedId = encodeURIComponent(memberId);
-  await request("places?member_id=eq." + encodedId, { method: "DELETE" }, "return=minimal");
-  await request("members?id=eq." + encodedId, { method: "DELETE" }, "return=minimal");
+  // 해당 멤버의 장소도 삭제
+  await supabase().from("places").delete().eq("member_id", memberId);
+  const { error } = await supabase().from("members").delete().eq("id", memberId);
+  throwOnError(error);
 }
 
-export async function createPlace(projectId: string, input: PlaceCreateInput) {
-  if (!isSupabaseConfigured()) {
-    return localStore.createPlace(projectId, input);
-  }
+// ── Places ────────────────────────────────────────────────────────
+
+export async function createPlace(
+  projectId: string,
+  input: PlaceCreateInput
+): Promise<Place> {
+  if (!isSupabaseConfigured()) return localStore.createPlace(projectId, input);
 
   const now = nowIso();
-  const rows = await request<PlaceRow[]>(
-    "places",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        project_id: projectId,
-        member_id: input.memberId,
-        name: input.name.trim(),
-        naver_map_url: input.naverMapUrl.trim(),
-        address: input.address.trim(),
-        lat: input.lat,
-        lng: input.lng,
-        category: input.category,
-        tags: input.tags,
-        comment: input.comment.trim(),
-        created_at: now,
-        updated_at: now
-      })
-    }
-  );
+  const { data, error } = await supabase()
+    .from("places")
+    .insert({
+      project_id: projectId,
+      member_id: input.memberId,
+      name: input.name.trim(),
+      naver_map_url: input.naverMapUrl.trim(),
+      address: input.address.trim(),
+      lat: input.lat,
+      lng: input.lng,
+      category: input.category,
+      tags: input.tags,
+      comment: input.comment.trim(),
+      created_at: now,
+      updated_at: now
+    })
+    .select()
+    .single();
 
-  return mapPlace(rows[0]);
+  throwOnError(error);
+  return mapPlace(data as PlaceRow);
 }
 
-export async function updatePlace(placeId: string, input: PlaceCreateInput) {
-  if (!isSupabaseConfigured()) {
-    return localStore.updatePlace(placeId, input);
-  }
+export async function updatePlace(
+  placeId: string,
+  input: PlaceCreateInput
+): Promise<Place | null> {
+  if (!isSupabaseConfigured()) return localStore.updatePlace(placeId, input);
 
-  const rows = await request<PlaceRow[]>(
-    `places?id=eq.${encodeURIComponent(placeId)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        member_id: input.memberId,
-        name: input.name.trim(),
-        naver_map_url: input.naverMapUrl.trim(),
-        address: input.address.trim(),
-        lat: input.lat,
-        lng: input.lng,
-        category: input.category,
-        tags: input.tags,
-        comment: input.comment.trim()
-      })
-    }
-  );
+  const { data, error } = await supabase()
+    .from("places")
+    .update({
+      member_id: input.memberId,
+      name: input.name.trim(),
+      naver_map_url: input.naverMapUrl.trim(),
+      address: input.address.trim(),
+      lat: input.lat,
+      lng: input.lng,
+      category: input.category,
+      tags: input.tags,
+      comment: input.comment.trim(),
+      updated_at: nowIso()
+    })
+    .eq("id", placeId)
+    .select()
+    .single();
 
-  return rows[0] ? mapPlace(rows[0]) : null;
+  throwOnError(error);
+  return data ? mapPlace(data as PlaceRow) : null;
 }
 
-export async function deletePlace(placeId: string) {
+export async function deletePlace(placeId: string): Promise<void> {
   if (!isSupabaseConfigured()) {
     localStore.deletePlace(placeId);
     return;
   }
 
-  await request(
-    `places?id=eq.${encodeURIComponent(placeId)}`,
-    { method: "DELETE" },
-    "return=minimal"
-  );
+  const { error } = await supabase().from("places").delete().eq("id", placeId);
+  throwOnError(error);
 }
 
-export async function seedSampleData() {
-  if (!isSupabaseConfigured()) {
-    return localStore.seedSampleData();
-  }
+// ── Seed (샘플 데이터) ────────────────────────────────────────────
 
-  const projects = await getProjects();
-  const existing = projects.find((project) => project.name === "부산 친구 맛집지도");
-  if (existing) {
-    return existing;
-  }
+export async function seedSampleData(): Promise<Project> {
+  if (!isSupabaseConfigured()) return localStore.seedSampleData();
+
+  const existing = (await getProjects()).find(
+    (p) => p.name === "부산 친구 맛집지도"
+  );
+  if (existing) return existing;
 
   const project = await createProject({
     name: "부산 친구 맛집지도",
-    description:
-      "친구들이 각자 추천한 부산 맛집, 카페, 술집, 디저트를 한 지도에 모았습니다."
+    description: "친구들이 각자 추천한 부산 맛집, 카페, 술집, 디저트를 한 지도에 모았습니다."
   });
 
   const memberInputs: MemberCreateInput[] = [
@@ -359,12 +417,9 @@ export async function seedSampleData() {
   ];
 
   const members = await Promise.all(
-    memberInputs.map((member) => createMember(project.id, member))
+    memberInputs.map((m) => createMember(project.id, m))
   );
-
-  const byNickname = Object.fromEntries(
-    members.map((member) => [member.nickname, member.id])
-  );
+  const byNickname = Object.fromEntries(members.map((m) => [m.nickname, m.id]));
 
   const samplePlaces: PlaceCreateInput[] = [
     {
@@ -413,7 +468,6 @@ export async function seedSampleData() {
     }
   ];
 
-  await Promise.all(samplePlaces.map((place) => createPlace(project.id, place)));
-
+  await Promise.all(samplePlaces.map((p) => createPlace(project.id, p)));
   return project;
 }
