@@ -10,6 +10,7 @@ import * as localStore from "@/lib/storage";
 import type {
   Member,
   MemberCreateInput,
+  MemberRole,
   Place,
   PlaceCreateInput,
   Project,
@@ -35,7 +36,7 @@ type MemberRow = {
   user_id: string | null;
   nickname: string;
   marker_color: string;
-  role: Member["role"];
+  role: string;
   created_at: string;
 };
 
@@ -67,6 +68,12 @@ function mapProject(row: ProjectRow): Project {
   };
 }
 
+function normalizeRole(role: string | null | undefined): MemberRole {
+  if (role === "owner" || role === "editor" || role === "viewer") return role;
+  if (role === "admin") return "owner";
+  return "editor";
+}
+
 function mapMember(row: MemberRow): Member {
   return {
     id: row.id,
@@ -74,7 +81,7 @@ function mapMember(row: MemberRow): Member {
     userId: row.user_id ?? null,
     nickname: row.nickname,
     markerColor: row.marker_color,
-    role: row.role,
+    role: normalizeRole(row.role),
     createdAt: row.created_at
   };
 }
@@ -131,23 +138,40 @@ export async function getProjectCounts(
         p.id,
         {
           memberCount: store.members.filter((m) => m.projectId === p.id).length,
-          placeCount: store.places.filter((pl) => pl.projectId === p.id).length
+          placeCount: store.places.filter((pl) => pl.projectId === p.id).length,
+          myRole: store.members.find((m) => m.projectId === p.id)?.role ?? "owner"
         }
       ])
     );
   }
 
-  const [{ data: members }, { data: places }] = await Promise.all([
-    supabase().from("members").select("project_id"),
-    supabase().from("places").select("project_id")
+  const [
+    { data: members, error: memberError },
+    { data: places, error: placeError },
+    {
+      data: { user }
+    }
+  ] = await Promise.all([
+    supabase().from("members").select("project_id,user_id,role"),
+    supabase().from("places").select("project_id"),
+    supabase().auth.getUser()
   ]);
+
+  throwOnError(memberError);
+  throwOnError(placeError);
 
   return Object.fromEntries(
     projects.map((p) => [
       p.id,
       {
         memberCount: (members ?? []).filter((m) => m.project_id === p.id).length,
-        placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length
+        placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length,
+        myRole: (() => {
+          const row = (members ?? []).find(
+            (m) => m.project_id === p.id && m.user_id === user?.id
+          );
+          return row ? normalizeRole(row.role) : null;
+        })()
       }
     ])
   );
@@ -258,15 +282,30 @@ export async function getProjectByInviteCode(
 ): Promise<Project | null> {
   if (!isSupabaseConfigured()) return null;
 
-  const { data, error } = await supabase()
-    .from("projects")
-    .select("*")
-    .eq("invite_code", code)
-    .limit(1);
+  const { data, error } = await supabase().rpc("get_project_by_invite_code", {
+    p_invite_code: code
+  });
 
   throwOnError(error);
-  if (!data || data.length === 0) return null;
-  return mapProject(data[0] as ProjectRow);
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  if (rows.length === 0) return null;
+  return mapProject(rows[0] as ProjectRow);
+}
+
+export async function joinProjectByInviteCode(
+  inviteCode: string,
+  input: Pick<MemberCreateInput, "nickname" | "markerColor">
+): Promise<string> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase가 필요합니다.");
+
+  const { data, error } = await supabase().rpc("join_project_by_invite", {
+    p_invite_code: inviteCode,
+    p_nickname: input.nickname.trim(),
+    p_marker_color: input.markerColor
+  });
+
+  throwOnError(error);
+  return String(data);
 }
 
 /** 현재 로그인 유저가 이미 해당 프로젝트 멤버인지 확인 */
@@ -393,4 +432,3 @@ export async function deletePlace(placeId: string): Promise<void> {
   const { error } = await supabase().from("places").delete().eq("id", placeId);
   throwOnError(error);
 }
-

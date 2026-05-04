@@ -8,10 +8,16 @@ import { formatDate } from "@/lib/utils";
 type ProjectListProps = {
   projects: Project[];
   counts: Record<string, ProjectCounts>;
-  onDelete: (project: Project) => void;
+  onDelete?: (project: Project) => void;
+  canDeleteProject?: (project: Project) => boolean;
 };
 
-export function ProjectList({ projects, counts, onDelete }: ProjectListProps) {
+export function ProjectList({
+  projects,
+  counts,
+  onDelete,
+  canDeleteProject
+}: ProjectListProps) {
   return (
     <div>
       <div className="flex items-end justify-between">
@@ -43,15 +49,17 @@ export function ProjectList({ projects, counts, onDelete }: ProjectListProps) {
                   >
                     <ArrowUpRight size={16} />
                   </Link>
-                  <button
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-                    onClick={() => onDelete(project)}
-                    type="button"
-                    aria-label={`${project.name} 삭제`}
-                    title="프로젝트 삭제"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {onDelete && (canDeleteProject?.(project) ?? true) ? (
+                    <button
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                      onClick={() => onDelete(project)}
+                      type="button"
+                      aria-label={`${project.name} 삭제`}
+                      title="프로젝트 삭제"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  ) : null}
                 </div>
               </div>
 

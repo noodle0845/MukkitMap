@@ -8,8 +8,8 @@ import { MemberForm } from "@/components/MemberForm";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   checkMembership,
-  createMember,
-  getProjectByInviteCode
+  getProjectByInviteCode,
+  joinProjectByInviteCode
 } from "@/lib/supabaseStorage";
 import type { Project } from "@/lib/types";
 
@@ -68,12 +68,12 @@ export function InvitePageClient({ inviteCode }: InvitePageClientProps) {
   }, [authLoading, user, inviteCode]);
 
   // ── 참여하기 ──────────────────────────────────────────────────
-  async function handleJoin(input: Parameters<typeof createMember>[1]) {
+  async function handleJoin(input: Parameters<typeof joinProjectByInviteCode>[1]) {
     if (state.kind !== "join-form" || !user) return;
 
     setState({ kind: "joining" });
     try {
-      await createMember(state.project.id, input, user.id);
+      await joinProjectByInviteCode(inviteCode, input);
       setState({ kind: "joined", projectId: state.project.id });
     } catch {
       setState({ kind: "join-form", project: state.project });
@@ -202,7 +202,11 @@ export function InvitePageClient({ inviteCode }: InvitePageClientProps) {
                 지도에 표시될 닉네임과 마커 색상을 정해주세요.
               </p>
             </div>
-            <MemberForm onSubmit={handleJoin} />
+            <MemberForm
+              fixedRole="editor"
+              onSubmit={handleJoin}
+              submitLabel="참여하기"
+            />
           </div>
         </div>
       </main>

@@ -9,6 +9,9 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 
 type MemberFormProps = {
   onSubmit: (input: MemberCreateInput) => void;
+  defaultRole?: MemberRole;
+  fixedRole?: MemberRole;
+  submitLabel?: string;
 };
 
 type Rgb = {
@@ -147,10 +150,21 @@ function cleanHexInput(value: string) {
   return value.replace(/[^0-9a-f]/gi, "").slice(0, 6).toUpperCase();
 }
 
-export function MemberForm({ onSubmit }: MemberFormProps) {
+const ROLE_LABELS: Record<MemberRole, string> = {
+  owner: "방장",
+  editor: "편집자",
+  viewer: "보기 전용"
+};
+
+export function MemberForm({
+  onSubmit,
+  defaultRole = "editor",
+  fixedRole,
+  submitLabel = "참여자 추가"
+}: MemberFormProps) {
   const [nickname, setNickname] = useState("");
   const [markerColor, setMarkerColor] = useState(PRESET_COLORS[0]);
-  const [role, setRole] = useState<MemberRole>("member");
+  const [role, setRole] = useState<MemberRole>(fixedRole ?? defaultRole);
   const [error, setError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draftColor, setDraftColor] = useState(PRESET_COLORS[0]);
@@ -231,9 +245,9 @@ export function MemberForm({ onSubmit }: MemberFormProps) {
       setError("색상을 다시 선택해주세요.");
       return;
     }
-    onSubmit({ nickname, markerColor, role });
+    onSubmit({ nickname, markerColor, role: fixedRole ?? role });
     setNickname("");
-    setRole("member");
+    setRole(fixedRole ?? defaultRole);
     setMarkerColor(PRESET_COLORS[0]);
     updateDraftColor(PRESET_COLORS[0]);
     setError("");
@@ -278,17 +292,27 @@ export function MemberForm({ onSubmit }: MemberFormProps) {
           </button>
         </div>
 
-        <label className="block">
-          <span className="field-label">역할</span>
-          <select
-            className="field"
-            value={role}
-            onChange={(event) => setRole(event.target.value as MemberRole)}
-          >
-            <option value="member">참여자</option>
-            <option value="admin">관리자</option>
-          </select>
-        </label>
+        {fixedRole ? (
+          <div className="rounded-xl border border-[var(--border)] bg-slate-50 px-4 py-3">
+            <span className="field-label">역할</span>
+            <p className="mt-1 text-sm font-bold text-slate-900">
+              {ROLE_LABELS[fixedRole]}
+            </p>
+          </div>
+        ) : (
+          <label className="block">
+            <span className="field-label">역할</span>
+            <select
+              className="field"
+              value={role}
+              onChange={(event) => setRole(event.target.value as MemberRole)}
+            >
+              <option value="editor">{ROLE_LABELS.editor}</option>
+              <option value="viewer">{ROLE_LABELS.viewer}</option>
+              <option value="owner">{ROLE_LABELS.owner}</option>
+            </select>
+          </label>
+        )}
 
         {error ? (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">
@@ -298,7 +322,7 @@ export function MemberForm({ onSubmit }: MemberFormProps) {
 
         <button className="btn-primary w-full" type="submit">
           <Plus size={16} />
-          참여자 추가
+          {submitLabel}
         </button>
       </form>
 

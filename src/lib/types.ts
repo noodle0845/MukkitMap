@@ -8,7 +8,7 @@ export const PLACE_CATEGORIES = [
 ] as const;
 
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
-export type MemberRole = "admin" | "member" | "viewer";
+export type MemberRole = "owner" | "editor" | "viewer";
 
 export type Project = {
   id: string;
@@ -86,6 +86,7 @@ export type PickedLocation = {
 export type ProjectCounts = {
   memberCount: number;
   placeCount: number;
+  myRole?: MemberRole | null;
 };
 
 export type NaverLocalSearchItem = {

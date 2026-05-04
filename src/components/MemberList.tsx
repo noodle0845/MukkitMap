@@ -8,6 +8,12 @@ type MemberListProps = {
   onDelete?: (member: Member) => void;
 };
 
+const ROLE_LABELS: Record<Member["role"], string> = {
+  owner: "방장",
+  editor: "편집자",
+  viewer: "보기 전용"
+};
+
 export function MemberList({ members, onDelete }: MemberListProps) {
   if (members.length === 0) {
     return (
@@ -38,7 +44,7 @@ export function MemberList({ members, onDelete }: MemberListProps) {
                 {member.nickname}
               </p>
               <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                {member.role === "admin" ? "관리자" : "참여자"}
+                {ROLE_LABELS[member.role]}
               </p>
             </div>
           </div>

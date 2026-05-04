@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -30,7 +31,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import type {
   FilterState,
   Member,
-  MemberRole,
   PickedLocation,
   Place,
   PlaceCreateInput,
@@ -191,6 +191,40 @@ function AccessDeniedScreen() {
   );
 }
 
+function AccessDeniedScreenV2({
+  onChangeAccount
+}: {
+  onChangeAccount: () => void;
+}) {
+  return (
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <section className="card w-full max-w-sm p-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+          <span className="text-2xl font-black text-amber-500">!</span>
+        </div>
+        <h1 className="title">이 먹킷맵에 접근할 수 없어요.</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          초대받은 계정으로 로그인했는지 확인해주세요.
+        </p>
+        <div className="mt-6 flex flex-col gap-2">
+          <button
+            className="btn-primary w-full justify-center"
+            onClick={onChangeAccount}
+            type="button"
+          >
+            <LogIn size={15} />
+            로그인 계정 변경
+          </button>
+          <Link className="btn-ghost w-full justify-center" href="/">
+            <Home size={15} />
+            처음으로 돌아가기
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function NeedLoginScreen({ projectId }: { projectId: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
@@ -249,7 +283,7 @@ function OnboardingContent({
           지도에서 사용할 닉네임과 마커 색상을 정해주세요.
         </p>
       </div>
-      <MemberForm onSubmit={onSubmit} />
+      <MemberForm defaultRole="owner" onSubmit={onSubmit} />
     </div>
   );
 }
@@ -257,6 +291,7 @@ function OnboardingContent({
 // ── 메인 컨텐츠 ───────────────────────────────────────────────────
 
 function ProjectContent({ projectId }: ProjectPageClientProps) {
+  const router = useRouter();
   const toast = useToast();
   const { user, authLoading, signOut } = useAuth();
 
@@ -283,12 +318,12 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   );
 
   // 권한 헬퍼
-  const isAdmin = myMember?.role === "admin";
+  const isOwner = myMember?.role === "owner";
   const canEdit =
     !isSupabaseConfigured() || // 로컬 모드는 제한 없음
-    myMember?.role === "admin" ||
-    myMember?.role === "member";
-  const isViewer = isSupabaseConfigured() && myMember?.role === "viewer";
+    myMember?.role === "owner" ||
+    myMember?.role === "editor";
+  const canManageMembers = !isSupabaseConfigured() || isOwner;
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
   const refreshProject = useCallback(async () => {
@@ -339,6 +374,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   // 멤버 0명이면 온보딩 모달 자동 오픈
   useEffect(() => {
     if (
+      !isSupabaseConfigured() &&
       loadStatus === "loaded" &&
       project !== null &&
       members.length === 0 &&
@@ -484,7 +520,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   // 초대 링크 생성/재생성
   async function handleGenerateInvite() {
-    if (!isAdmin) return;
+    if (!isOwner) return;
     setGeneratingInvite(true);
     try {
       const code = await regenerateInviteCode(projectId);
@@ -520,6 +556,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     toast.show({ title: "초대 링크를 복사했어요", tone: "success" });
   }
 
+  async function handleChangeAccount() {
+    await signOut();
+    router.push(`/auth?returnTo=/projects/${projectId}`);
+  }
+
   // ── 화면 분기 ──────────────────────────────────────────────
 
   // Supabase 모드: 로그인 안 됐으면 로그인 유도
@@ -532,7 +573,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }
 
   if (loadStatus === "access-denied") {
-    return <AccessDeniedScreen />;
+    return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
   }
 
   if (loadStatus === "timeout" || loadStatus === "network-error") {
@@ -541,11 +582,17 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   if (loadStatus === "loaded" && !project) {
     // Supabase 모드: RLS가 빈 배열로 막은 것 → 접근 권한 없음
-    if (isSupabaseConfigured()) return <AccessDeniedScreen />;
+    if (isSupabaseConfigured()) {
+      return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
+    }
     return <NotFoundScreen />;
   }
 
   if (!project) return null;
+
+  if (isSupabaseConfigured() && !myMember) {
+    return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
+  }
 
   const hasNoPlaces = places.length === 0;
 
@@ -584,7 +631,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
           </button>
 
           {/* 초대 링크 (admin) */}
-          {isAdmin && (
+          {canManageMembers && (
             <button
               className="btn-ghost"
               onClick={inviteCode ? handleCopyInvite : handleGenerateInvite}
@@ -729,10 +776,10 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         <div className="space-y-6">
           <MemberList
             members={members}
-            onDelete={isAdmin ? handleDeleteMember : undefined}
+            onDelete={canManageMembers ? handleDeleteMember : undefined}
           />
           {/* 초대 링크 섹션 (admin) */}
-          {isAdmin && isSupabaseConfigured() && (
+          {canManageMembers && isSupabaseConfigured() && (
             <div className="rounded-xl border border-[var(--border-soft)] p-4">
               <p className="caption mb-2">초대 링크</p>
               {inviteCode ? (
@@ -771,10 +818,13 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             </div>
           )}
           {/* admin만 새 참여자 직접 추가 */}
-          {isAdmin && (
+          {canManageMembers && (
             <div className="border-t border-[var(--border-soft)] pt-6">
               <p className="caption mb-3">새 참여자 직접 추가</p>
-              <MemberForm onSubmit={(input) => handleAddMember(input)} />
+              <MemberForm
+                defaultRole="editor"
+                onSubmit={(input) => handleAddMember(input)}
+              />
             </div>
           )}
         </div>
