@@ -245,6 +245,10 @@ export async function deleteProject(projectId: string): Promise<void> {
     return;
   }
 
+  // 장소 → 멤버 → 프로젝트 순으로 삭제 (DB CASCADE가 없는 경우 방어)
+  await supabase().from("places").delete().eq("project_id", projectId);
+  await supabase().from("members").delete().eq("project_id", projectId);
+
   const { error } = await supabase()
     .from("projects")
     .delete()
