@@ -101,6 +101,16 @@ export function createProject(input: ProjectCreateInput) {
   return project;
 }
 
+export function deleteProject(projectId: string) {
+  const store = getStore();
+
+  saveStore({
+    projects: store.projects.filter((project) => project.id !== projectId),
+    members: store.members.filter((member) => member.projectId !== projectId),
+    places: store.places.filter((place) => place.projectId !== projectId)
+  });
+}
+
 export function createMember(projectId: string, input: MemberCreateInput) {
   const store = getStore();
   const member: Member = {

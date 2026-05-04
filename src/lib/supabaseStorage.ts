@@ -220,6 +220,19 @@ export async function createProject(input: ProjectCreateInput) {
   return mapProject(rows[0]);
 }
 
+export async function deleteProject(projectId: string) {
+  if (!isSupabaseConfigured()) {
+    localStore.deleteProject(projectId);
+    return;
+  }
+
+  await request(
+    `projects?id=eq.${encodeURIComponent(projectId)}`,
+    { method: "DELETE" },
+    "return=minimal"
+  );
+}
+
 export async function createMember(projectId: string, input: MemberCreateInput) {
   if (!isSupabaseConfigured()) {
     return localStore.createMember(projectId, input);

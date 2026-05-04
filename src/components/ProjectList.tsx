@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, MapPinned, Users } from "lucide-react";
+import { ArrowUpRight, MapPinned, Trash2, Users } from "lucide-react";
 import type { Project, ProjectCounts } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
 
 type ProjectListProps = {
   projects: Project[];
   counts: Record<string, ProjectCounts>;
+  onDelete: (project: Project) => void;
 };
 
-export function ProjectList({ projects, counts }: ProjectListProps) {
+export function ProjectList({ projects, counts, onDelete }: ProjectListProps) {
   return (
     <div>
       <div className="flex items-end justify-between">
@@ -27,16 +28,31 @@ export function ProjectList({ projects, counts }: ProjectListProps) {
           const c = counts[project.id] ?? { memberCount: 0, placeCount: 0 };
 
           return (
-            <Link
+            <article
               className="card group flex flex-col gap-4 p-5"
-              href={`/projects/${project.id}`}
               key={project.id}
             >
               <div className="flex items-start justify-between gap-3">
                 <h3 className="title line-clamp-1">{project.name}</h3>
-                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] text-slate-500 transition group-hover:border-emerald-300 group-hover:bg-[var(--primary-soft)] group-hover:text-emerald-600">
-                  <ArrowUpRight size={16} />
-                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-slate-500 transition hover:border-emerald-300 hover:bg-[var(--primary-soft)] hover:text-emerald-600"
+                    href={`/projects/${project.id}`}
+                    aria-label={`${project.name} 열기`}
+                    title="프로젝트 열기"
+                  >
+                    <ArrowUpRight size={16} />
+                  </Link>
+                  <button
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-slate-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                    onClick={() => onDelete(project)}
+                    type="button"
+                    aria-label={`${project.name} 삭제`}
+                    title="프로젝트 삭제"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
 
               <p className="line-clamp-2 text-[13px] leading-6 text-slate-500">
@@ -56,7 +72,7 @@ export function ProjectList({ projects, counts }: ProjectListProps) {
                   {formatDate(project.createdAt)}
                 </span>
               </div>
-            </Link>
+            </article>
           );
         })}
       </div>
