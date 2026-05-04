@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Link2, MapPin, Plus, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowRight, Link2, MapPin, Plus, RefreshCw } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectList } from "@/components/ProjectList";
@@ -13,8 +13,7 @@ import {
   createProject,
   deleteProject,
   getProjectCounts,
-  getProjects,
-  seedSampleData
+  getProjects
 } from "@/lib/supabaseStorage";
 
 const LOAD_TIMEOUT_MS = 5000;
@@ -117,20 +116,6 @@ function HomeContent() {
     }
   }
 
-  async function handleSeedSample() {
-    try {
-      const project = await seedSampleData();
-      toast.show({ title: "샘플 지도를 불러왔어요", tone: "success" });
-      router.push(`/projects/${project.id}`);
-    } catch (error) {
-      console.error(error);
-      toast.show({
-        title: "샘플 데이터를 만들지 못했어요",
-        description: getErrorMessage(error),
-        tone: "error"
-      });
-    }
-  }
 
   async function handleDeleteProject(project: Project) {
     if (
@@ -218,7 +203,7 @@ function HomeContent() {
             새 먹킷맵 만들기
           </button>
 
-          {/* ── 2차 CTA (독립 버튼, 충분한 간격) ────── */}
+          {/* ── 2차 CTA ────────────────────────────── */}
           <div className="mt-3 flex w-full max-w-[280px] flex-col gap-2">
             <button
               className="btn-ghost w-full justify-center"
@@ -226,13 +211,6 @@ function HomeContent() {
             >
               <Link2 size={15} />
               초대 링크로 참여하기
-            </button>
-            <button
-              className="btn-ghost w-full justify-center"
-              onClick={handleSeedSample}
-            >
-              <Sparkles size={15} />
-              샘플 지도 보기
             </button>
           </div>
 
