@@ -174,19 +174,14 @@ function AccessDeniedScreen() {
         </div>
         <h1 className="title">이 먹킷맵에 접근할 수 없어요</h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          초대받은 계정으로 로그인했는지 확인해주세요.
+          초대 링크로만 참여할 수 있어요.<br />
+          친구에게 초대 링크를 받아보세요.
         </p>
         <div className="mt-6 flex flex-col gap-2">
           <Link
             className="btn-primary w-full justify-center"
-            href={`/auth?returnTo=${encodeURIComponent(
-              typeof window !== "undefined" ? window.location.pathname : "/"
-            )}`}
+            href="/"
           >
-            <LogIn size={15} />
-            로그인 계정 변경
-          </Link>
-          <Link className="btn-ghost w-full justify-center" href="/">
             <Home size={15} />
             처음으로 돌아가기
           </Link>
@@ -330,14 +325,16 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }, [projectId]);
 
   useEffect(() => {
-    // Supabase 모드: auth 로딩이 끝난 뒤 로딩
+    // Supabase 모드: auth 로딩이 끝날 때까지 대기
     if (isSupabaseConfigured() && authLoading) return;
+    // Supabase 모드: 로그인 안 됐으면 fetch 자체를 하지 않음 (NeedLoginScreen 표시)
+    if (isSupabaseConfigured() && !user) return;
     refreshProject();
     return () => {
       activeRef.current = false;
       if (tidRef.current) clearTimeout(tidRef.current);
     };
-  }, [refreshProject, authLoading]);
+  }, [refreshProject, authLoading, user]);
 
   // 멤버 0명이면 온보딩 모달 자동 오픈
   useEffect(() => {
@@ -543,6 +540,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }
 
   if (loadStatus === "loaded" && !project) {
+    // Supabase 모드: RLS가 빈 배열로 막은 것 → 접근 권한 없음
+    if (isSupabaseConfigured()) return <AccessDeniedScreen />;
     return <NotFoundScreen />;
   }
 
