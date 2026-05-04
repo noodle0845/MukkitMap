@@ -19,12 +19,6 @@ import {
 
 const LOAD_TIMEOUT_MS = 5000;
 
-const PREVIEW_CARDS = [
-  { name: "라면", color: "#ef4444", place: "전포 감성카페" },
-  { name: "워렌", color: "#3b82f6", place: "서면 국밥집" },
-  { name: "존슨", color: "#22c55e", place: "광안리 술집" },
-  { name: "베일", color: "#f59e0b", place: "해운대 디저트" }
-] as const;
 
 type LoadStatus = "loading" | "loaded" | "error";
 
@@ -187,7 +181,7 @@ function HomeContent() {
       <div className="mx-auto max-w-lg">
 
         {/* ── 헤더 ───────────────────────────────────────────── */}
-        <header className="flex items-center justify-between pt-8 pb-6">
+        <header className="flex items-center justify-center pt-8 pb-6">
           <GhostlyLogo className="w-[140px] sm:w-[160px]" />
         </header>
 
@@ -242,20 +236,6 @@ function HomeContent() {
             </button>
           </div>
 
-          {/* ── 장소 카드 미리보기 ────────────────────── */}
-          <div className="mt-10 grid w-full max-w-[280px] grid-cols-2 gap-3">
-            {PREVIEW_CARDS.map(({ name, color, place }) => (
-              <div className="card p-4 text-left" key={name}>
-                <span
-                  className="block h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: color }}
-                  aria-hidden
-                />
-                <p className="mt-3 text-[13px] font-bold leading-tight text-slate-900">{place}</p>
-                <p className="mt-1 text-[11px] font-semibold text-slate-500">{name} 추천</p>
-              </div>
-            ))}
-          </div>
         </section>
 
         {/* ══════════════════════════════════════════════════════
