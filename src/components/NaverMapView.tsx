@@ -92,50 +92,86 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#039;");
 }
 
+function categoryEmoji(category: string): string {
+  const map: Record<string, string> = {
+    "밥집": "🍽",
+    "카페": "☕",
+    "술집": "🍺",
+    "디저트": "🍰",
+    "놀거리": "🎮",
+    "기타": "✨",
+  };
+  return map[category] ?? "📌";
+}
+
 function markerContent(place: Place, color: string, selected: boolean, showLabel: boolean) {
-  const size = selected ? 28 : 22;
-  const border = selected ? 4 : 3;
+  const sc = safeMarkerColor(color);
+  const emoji = categoryEmoji(place.category);
+
+  if (selected) {
+    // 선택 상태: 큰 핀 + 글로우 + 이름 라벨 항상 표시
+    const label = `<span style="
+        display:inline-flex;align-items:center;
+        max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+        border-radius:999px;background:white;
+        padding:4px 11px;font-size:12px;font-weight:800;color:#0f172a;
+        box-shadow:0 2px 14px rgba(15,23,42,0.18);
+        border:2.5px solid ${sc};
+        align-self:flex-end;margin-bottom:8px;
+      ">${escapeHtml(place.name)}</span>`;
+
+    return `<div style="display:flex;align-items:flex-end;gap:8px;">
+      <div style="position:relative;width:34px;height:44px;flex-shrink:0;">
+        <svg width="34" height="44" viewBox="0 0 34 44" fill="none"
+          style="filter:drop-shadow(0 6px 18px ${sc}99) drop-shadow(0 2px 6px rgba(15,23,42,0.32));">
+          <path d="M17 2C9.82 2 4 7.82 4 15C4 25.56 17 42 17 42S30 25.56 30 15C30 7.82 24.18 2 17 2Z"
+            fill="${sc}" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+          <circle cx="17" cy="14" r="8.5" fill="white" fill-opacity="0.97"/>
+        </svg>
+        <span style="
+          position:absolute;top:5.5px;left:0;width:34px;height:17px;
+          display:flex;align-items:center;justify-content:center;
+          font-size:13px;line-height:1;pointer-events:none;
+        ">${emoji}</span>
+      </div>
+      ${label}
+    </div>`;
+  }
+
+  // 기본 상태: 일반 핀 + 선택적 라벨
   const label = showLabel
     ? `<span style="
-        display:inline-flex;
-        align-items:center;
-        min-height:24px;
-        max-width:160px;
-        overflow:hidden;
-        white-space:nowrap;
-        text-overflow:ellipsis;
-        border-radius:999px;
-        background:white;
-        padding:3px 8px;
-        font-size:12px;
-        font-weight:800;
-        color:#0f172a;
-        box-shadow:0 8px 18px rgba(15,23,42,0.16);
+        display:inline-flex;align-items:center;
+        max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+        border-radius:999px;background:white;
+        padding:2px 8px;font-size:11px;font-weight:800;color:#0f172a;
+        box-shadow:0 2px 8px rgba(15,23,42,0.14);
+        align-self:flex-end;margin-bottom:5px;
       ">${escapeHtml(place.name)}</span>`
     : "";
 
-  return `<div style="
-      display:flex;
-      align-items:center;
-      gap:6px;
-      transform:translateY(-50%);
-    ">
+  return `<div style="display:flex;align-items:flex-end;gap:5px;">
+    <div style="position:relative;width:26px;height:34px;flex-shrink:0;">
+      <svg width="26" height="34" viewBox="0 0 26 34" fill="none"
+        style="filter:drop-shadow(0 3px 8px rgba(15,23,42,0.26));">
+        <path d="M13 2C7.477 2 3 6.477 3 12C3 20.4 13 32 13 32S23 20.4 23 12C23 6.477 18.523 2 13 2Z"
+          fill="${sc}" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="13" cy="11.5" r="6.5" fill="white" fill-opacity="0.95"/>
+      </svg>
       <span style="
-        display:block;
-        width:${size}px;
-        height:${size}px;
-        border-radius:999px;
-        background:${safeMarkerColor(color)};
-        border:${border}px solid white;
-        box-shadow:0 8px 18px rgba(15,23,42,0.24);
-      "></span>
-      ${label}
-    </div>`;
+        position:absolute;top:5px;left:0;width:26px;height:13px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:10px;line-height:1;pointer-events:none;
+      ">${emoji}</span>
+    </div>
+    ${label}
+  </div>`;
 }
 
 function richInfoContent(place: Place, member: Member | undefined) {
   const memberColor = safeMarkerColor(member?.markerColor);
   const memberName = escapeHtml(member?.nickname ?? "알 수 없음");
+  const emoji = categoryEmoji(place.category);
   const tagsHtml = place.tags
     .slice(0, 3)
     .map(
@@ -149,13 +185,13 @@ function richInfoContent(place: Place, member: Member | undefined) {
     : "";
 
   return `<div style="font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;min-width:240px;max-width:280px;padding:6px 4px;">
-    <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">
-      <span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:${memberColor};"></span>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:0.04em;">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:${memberColor};flex-shrink:0;"></span>
       <span>${memberName}</span>
-      <span style="opacity:.5;">·</span>
-      <span>${escapeHtml(place.category)}</span>
+      <span style="opacity:.4;">·</span>
+      <span>${emoji} ${escapeHtml(place.category)}</span>
     </div>
-    <p style="margin:6px 0 0;font-size:16px;font-weight:700;color:#0f172a;line-height:1.3;">${escapeHtml(place.name)}</p>
+    <p style="margin:6px 0 0;font-size:16px;font-weight:800;color:#0f172a;line-height:1.3;">${escapeHtml(place.name)}</p>
     <p style="margin:4px 0 0;font-size:12px;color:#64748b;line-height:1.5;">${escapeHtml(place.address)}</p>
     ${memoHtml}
     ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${tagsHtml}</div>` : ""}
@@ -167,34 +203,29 @@ function richInfoContent(place: Place, member: Member | undefined) {
 }
 
 function pickedMarkerContent() {
-  return `<div style="
-      display:flex;
-      align-items:center;
-      gap:6px;
-      transform:translateY(-50%);
-    ">
+  return `<div style="display:flex;align-items:flex-end;gap:6px;">
+    <div style="position:relative;width:30px;height:38px;flex-shrink:0;">
+      <svg width="30" height="38" viewBox="0 0 30 38" fill="none"
+        style="filter:drop-shadow(0 5px 14px rgba(16,185,129,0.55)) drop-shadow(0 2px 5px rgba(15,23,42,0.28));">
+        <path d="M15 2C9.477 2 5 6.477 5 12C5 21 15 36 15 36S25 21 25 12C25 6.477 20.523 2 15 2Z"
+          fill="#10b981" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="15" cy="11.5" r="7" fill="white" fill-opacity="0.97"/>
+      </svg>
       <span style="
-        display:block;
-        width:28px;
-        height:28px;
-        border-radius:999px;
-        background:#0f766e;
-        border:4px solid white;
-        box-shadow:0 8px 18px rgba(15,23,42,0.24);
-      "></span>
-      <span style="
-        display:inline-flex;
-        align-items:center;
-        min-height:24px;
-        border-radius:999px;
-        background:white;
-        padding:3px 8px;
-        font-size:12px;
-        font-weight:800;
-        color:#0f172a;
-        box-shadow:0 8px 18px rgba(15,23,42,0.16);
-      ">선택 위치</span>
-    </div>`;
+        position:absolute;top:4.5px;left:0;width:30px;height:14px;
+        display:flex;align-items:center;justify-content:center;
+        font-size:12px;line-height:1;pointer-events:none;
+      ">📍</span>
+    </div>
+    <span style="
+      display:inline-flex;align-items:center;
+      border-radius:999px;background:white;
+      padding:3px 10px;font-size:12px;font-weight:800;color:#0f172a;
+      box-shadow:0 2px 10px rgba(15,23,42,0.16);
+      border:2px solid #10b981;
+      align-self:flex-end;margin-bottom:4px;
+    ">선택 위치</span>
+  </div>`;
 }
 
 function fitPlaces(maps: any, map: any, places: Place[], selectedPlaceId: string | null) {
@@ -557,7 +588,8 @@ export function NaverMapView({
       const selected = selectedPlaceId === place.id;
       const marker = new maps.Marker({
         icon: {
-          anchor: new maps.Point(selected ? 14 : 11, selected ? 14 : 11),
+          // 핀 끝(bottom-center)이 좌표에 오도록 anchor 설정
+          anchor: new maps.Point(selected ? 17 : 13, selected ? 44 : 34),
           content: markerContent(
             place,
             member?.markerColor ?? "#64748b",
@@ -625,7 +657,7 @@ export function NaverMapView({
 
       pickedMarkerRef.current = new maps.Marker({
         icon: {
-          anchor: new maps.Point(14, 14),
+          anchor: new maps.Point(15, 38),
           content: pickedMarkerContent()
         },
         map,
