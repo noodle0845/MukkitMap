@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ExternalLink, Mail, Lock, LogIn, UserPlus, ArrowLeft } from "lucide-react";
+import { Mail, Lock, LogIn, UserPlus, ArrowLeft } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
@@ -15,77 +15,17 @@ function getErrorMessage(error: unknown) {
   return "잠시 후 다시 시도해주세요.";
 }
 
-/** 카카오톡·인스타그램 등 인앱 브라우저 감지 */
-function detectInAppBrowser(): boolean {
+/** KakaoTalk 인앱 브라우저 감지 */
+function detectKakaoInApp(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /KAKAOTALK|KAKAO/i.test(navigator.userAgent);
+}
+
+/** 그 외 인앱 브라우저 감지 (Instagram, Facebook 등) */
+function detectOtherInApp(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  return /KAKAOTALK|KAKAO|Line\/|Instagram|FBAN|FBAV|Twitter|Snapchat|WeChat|MicroMessenger|NaverApp/i.test(ua);
-}
-
-/** Android Chrome으로 열기 intent URL */
-function getChromeIntentUrl(currentUrl: string) {
-  // Android: intent scheme으로 Chrome 강제 실행
-  const encoded = encodeURIComponent(currentUrl);
-  return `intent://${currentUrl.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`;
-}
-
-function InAppBrowserWarning({ currentUrl }: { currentUrl: string }) {
-  const [copied, setCopied] = useState(false);
-
-  function handleCopy() {
-    navigator.clipboard.writeText(currentUrl).catch(() => {
-      const ta = document.createElement("textarea");
-      ta.value = currentUrl;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    });
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 pb-16">
-      <div className="mb-8 flex flex-col items-center gap-3">
-        <GhostlyLogo className="w-[140px]" />
-      </div>
-
-      <div className="card w-full max-w-sm p-7 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-2xl">
-          🌐
-        </div>
-        <h1 className="title">외부 브라우저에서 열어주세요</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          카카오톡 안에서는 Google 로그인이 지원되지 않아요.
-          <br />
-          Chrome 또는 Safari에서 접속해주세요.
-        </p>
-
-        {/* Android: Chrome으로 직접 열기 시도 */}
-        <a
-          href={getChromeIntentUrl(currentUrl)}
-          className="btn-primary mt-5 w-full justify-center"
-        >
-          <ExternalLink size={16} />
-          Chrome으로 열기
-        </a>
-
-        {/* iOS / 공통: URL 복사 */}
-        <button
-          className="btn-ghost mt-2 w-full justify-center"
-          onClick={handleCopy}
-          type="button"
-        >
-          {copied ? "✅ 복사됨" : "🔗 주소 복사하기"}
-        </button>
-
-        <p className="mt-4 text-[12px] text-slate-400">
-          복사 후 Safari나 Chrome 주소창에 붙여넣으세요.
-        </p>
-      </div>
-    </main>
-  );
+  return /Line\/|Instagram|FBAN|FBAV|Twitter|Snapchat|WeChat|MicroMessenger|NaverApp/i.test(ua);
 }
 
 export function AuthPage() {
@@ -93,8 +33,8 @@ export function AuthPage() {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") ?? "/";
 
-  const [isInApp, setIsInApp] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState("");
+  const [isKakaoInApp, setIsKakaoInApp] = useState(false);
+  const [isOtherInApp, setIsOtherInApp] = useState(false);
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -103,23 +43,18 @@ export function AuthPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setIsInApp(detectInAppBrowser());
-    setCurrentUrl(window.location.href);
+    setIsKakaoInApp(detectKakaoInApp());
+    setIsOtherInApp(detectOtherInApp());
   }, []);
 
-  // 인앱 브라우저면 경고 화면 표시
-  if (isInApp) {
-    return <InAppBrowserWarning currentUrl={currentUrl} />;
-  }
+  const redirectTo = `${typeof window !== "undefined" ? window.location.origin : ""}${returnTo}`;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
     setMessage("");
     setLoading(true);
-
     const supabase = getSupabaseClient();
-
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -129,7 +64,7 @@ export function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}${returnTo}` }
+          options: { emailRedirectTo: redirectTo }
         });
         if (error) throw error;
         setMessage("가입 확인 이메일을 보냈어요. 이메일을 확인해주세요.");
@@ -146,10 +81,25 @@ export function AuthPage() {
     const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}${returnTo}` }
+      options: { redirectTo }
     });
     if (error) setError(getErrorMessage(error));
   }
+
+  async function handleKakao() {
+    setError("");
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: { redirectTo }
+    });
+    if (error) setError(getErrorMessage(error));
+  }
+
+  // 카카오톡 인앱: 카카오 로그인만 표시 (Google은 작동 안 함)
+  // 그 외 인앱(인스타 등): 두 버튼 모두 표시하되 안내 문구
+  const showGoogle = !isKakaoInApp;
+  const showKakaoNote = isKakaoInApp;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 pb-16">
@@ -166,32 +116,48 @@ export function AuthPage() {
           {mode === "login" ? "로그인" : "회원가입"}
         </h1>
 
-        {/* Google 로그인 */}
+        {/* 카카오 로그인 */}
         <button
-          className="btn-ghost mt-5 w-full justify-center"
-          onClick={handleGoogle}
+          className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-[14px] font-bold text-[#191919] transition hover:brightness-95 active:scale-[0.98]"
+          style={{ backgroundColor: "#FEE500" }}
+          onClick={handleKakao}
           type="button"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+          {/* 카카오 로고 */}
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden fill="none">
             <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M9 0.75C4.44 0.75 0.75 3.69 0.75 7.32c0 2.28 1.485 4.29 3.735 5.46l-.945 3.495a.225.225 0 0 0 .345.255L7.8 14.07c.39.06.795.09 1.2.09 4.56 0 8.25-2.94 8.25-6.57C17.25 3.69 13.56.75 9 .75z"
+              fill="#191919"
             />
           </svg>
-          Google로 계속하기
+          카카오로 계속하기
         </button>
+
+        {/* 카카오톡 인앱 안내 */}
+        {showKakaoNote && (
+          <p className="mt-2 text-center text-[12px] text-slate-400">
+            카카오톡에서 카카오 로그인을 사용해주세요
+          </p>
+        )}
+
+        {/* Google 로그인 (카카오톡 인앱에서는 숨김) */}
+        {showGoogle && (
+          <button
+            className="btn-ghost mt-2 w-full justify-center"
+            onClick={handleGoogle}
+            type="button"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+            </svg>
+            Google로 계속하기
+          </button>
+        )}
 
         <div className="my-4 flex items-center gap-3">
           <div className="flex-1 border-t border-[var(--border-soft)]" />
@@ -204,10 +170,7 @@ export function AuthPage() {
           <label className="block">
             <span className="field-label">이메일</span>
             <div className="relative mt-1">
-              <Mail
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+              <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 className="field pl-9"
                 type="email"
@@ -222,10 +185,7 @@ export function AuthPage() {
           <label className="block">
             <span className="field-label">비밀번호</span>
             <div className="relative mt-1">
-              <Lock
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+              <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 className="field pl-9"
                 type="password"
