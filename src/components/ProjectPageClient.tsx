@@ -207,7 +207,6 @@ function AccessDeniedScreenV2({
   onChangeAccount,
   user,
   projectId,
-  onJoined
 }: {
   onChangeAccount: () => void;
   user: { id: string } | null;
