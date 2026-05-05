@@ -11,9 +11,11 @@ import {
   Link2,
   LogIn,
   MapPin,
+  MoreVertical,
   Plus,
   RefreshCw,
   RotateCcw,
+  Trash2,
   Users
 } from "lucide-react";
 import { FilterBar } from "@/components/FilterPanel";
@@ -40,6 +42,7 @@ import {
   createPlace,
   deleteMember,
   deletePlace,
+  deleteProject,
   getProjectBundle,
   regenerateInviteCode,
   updatePlace
@@ -362,6 +365,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const onboardingShownRef = useRef(false);
   const activeRef = useRef(true);
@@ -616,6 +621,40 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     router.push("/auth");
   }
 
+  async function handleDeleteProject() {
+    if (!project) return;
+    setMenuOpen(false);
+    if (
+      !window.confirm(
+        `"${project.name}" 먹킷맵을 삭제할까요?\n참여자와 장소도 함께 삭제됩니다.`
+      )
+    ) return;
+    try {
+      await deleteProject(projectId);
+      toast.show({ title: "먹킷맵을 삭제했어요", tone: "info" });
+      router.push("/");
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "프로젝트 삭제에 실패했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    }
+  }
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
   // ── 화면 분기 ──────────────────────────────────────────────
 
   // Supabase 모드: 로그인 안 됐으면 로그인 유도
@@ -716,6 +755,33 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
               <span className="hidden sm:inline">{inviteCopied ? "복사됨" : "초대 링크"}</span>
               <span className="sm:hidden">{inviteCopied ? "복사됨" : "초대"}</span>
             </button>
+          )}
+
+          {/* 더보기 메뉴 (방장만) */}
+          {isOwner && (
+            <div className="relative" ref={menuRef}>
+              <button
+                className="icon-button"
+                onClick={() => setMenuOpen((v) => !v)}
+                title="더보기"
+                type="button"
+                aria-label="더보기 메뉴"
+              >
+                <MoreVertical size={17} />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full z-[700] mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                  <button
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-[14px] font-semibold text-red-500 transition hover:bg-red-50"
+                    onClick={handleDeleteProject}
+                    type="button"
+                  >
+                    <Trash2 size={15} />
+                    먹킷맵 삭제
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

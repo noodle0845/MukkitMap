@@ -9,8 +9,7 @@ import {
   LogOut,
   MapPin,
   Plus,
-  RefreshCw,
-  Users
+  RefreshCw
 } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { ProjectForm } from "@/components/ProjectForm";
@@ -62,108 +61,6 @@ function ProjectSkeleton() {
       {[1, 2].map((i) => (
         <div key={i} className="h-[100px] animate-pulse rounded-2xl bg-slate-100" />
       ))}
-    </div>
-  );
-}
-
-// ── 데스크톱용 서비스 미리보기 mockup ────────────────────────────
-const MOCK_PLACES = [
-  { name: "전포 감성 카페", member: "라면", color: "#10b981", tag: "카페" },
-  { name: "서면 국밥집", member: "워렌", color: "#3b82f6", tag: "국밥" },
-  { name: "광안리 오션 술집", member: "민지", color: "#a855f7", tag: "술집" },
-];
-
-function MockupPreview() {
-  return (
-    <div className="relative select-none">
-      {/* 배경 장식 */}
-      <div className="pointer-events-none absolute -top-6 -right-6 h-32 w-32 rounded-full bg-emerald-100 opacity-50 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-blue-100 opacity-40 blur-2xl" />
-
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/60">
-        {/* 지도 mockup 영역 */}
-        <div className="relative h-52 overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-100">
-          {/* SVG 도로 선 */}
-          <svg className="absolute inset-0 h-full w-full opacity-30" xmlns="http://www.w3.org/2000/svg">
-            <line x1="0" y1="80" x2="100%" y2="80" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="0" />
-            <line x1="0" y1="140" x2="100%" y2="140" stroke="#cbd5e1" strokeWidth="1" />
-            <line x1="30%" y1="0" x2="30%" y2="100%" stroke="#94a3b8" strokeWidth="1.5" />
-            <line x1="70%" y1="0" x2="70%" y2="100%" stroke="#cbd5e1" strokeWidth="1" />
-          </svg>
-          {/* 블록 */}
-          <div className="absolute left-[31%] top-[0%] h-16 w-[38%] rounded bg-slate-200/60" />
-          <div className="absolute left-[31%] top-[58%] h-10 w-[18%] rounded bg-slate-200/50" />
-          <div className="absolute left-[72%] top-[0%] h-20 w-[27%] rounded bg-slate-200/50" />
-
-          {/* 마커 */}
-          <div className="absolute" style={{ top: "28%", left: "22%" }}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[0].color }}>
-              라
-            </div>
-          </div>
-          <div className="absolute" style={{ top: "52%", left: "55%" }}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[1].color }}>
-              워
-            </div>
-          </div>
-          <div className="absolute" style={{ top: "18%", left: "76%" }}>
-            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[2].color }}>
-              민
-            </div>
-          </div>
-
-          {/* 지도 레이블 */}
-          <div className="absolute bottom-2 right-3 rounded-md bg-white/70 px-2 py-1 text-[10px] font-semibold text-slate-400 backdrop-blur-sm">
-            먹킷맵 · 부산 친구 모임
-          </div>
-        </div>
-
-        {/* 카드 헤더 */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">오늘의 친구 추천</p>
-            <h3 className="text-[15px] font-bold text-slate-900">부산 친구 먹킷맵</h3>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-semibold text-slate-500">
-            <Users size={12} />
-            3명
-          </div>
-        </div>
-
-        {/* 장소 리스트 */}
-        <div className="space-y-1.5 px-4 py-3">
-          {MOCK_PLACES.map((p) => (
-            <div key={p.name} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
-              <div
-                className="h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white"
-                style={{ backgroundColor: p.color }}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-slate-800">{p.name}</p>
-                <p className="text-[11px] text-slate-400">{p.member} 추천</p>
-              </div>
-              <span
-                className="flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                style={{ backgroundColor: `${p.color}18`, color: p.color }}
-              >
-                #{p.tag}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* 태그 필터 */}
-        <div className="flex flex-wrap gap-2 px-5 pb-4">
-          {["#카페", "#술집", "#데이트", "#국밥"].map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-semibold text-slate-500"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
@@ -352,67 +249,52 @@ function HomeContent() {
       {/* ══════════════════════════════════════════
           Hero
       ══════════════════════════════════════════ */}
-      <section className="px-5 pt-8 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-10 lg:pt-20 lg:pb-24">
-        <div className="mx-auto max-w-[1200px]">
-          {/* 2단 그리드: 데스크톱만 */}
-          <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-20">
+      <section className="px-5 pt-10 pb-10 sm:px-6 sm:pt-14 sm:pb-12 lg:px-10 lg:pt-20 lg:pb-24">
+        <div className="mx-auto max-w-[600px] text-center">
+          {/* 뱃지 */}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 ring-1 ring-emerald-100">
+            <MapPin size={11} aria-hidden />
+            친구 맛집 한 지도에
+          </span>
 
-            {/* ── 왼쪽: 카피 + CTA ── */}
-            <div className="mx-auto flex w-full max-w-[420px] flex-col items-center text-center lg:mx-0 lg:max-w-none lg:items-start lg:text-left">
-              {/* 뱃지 */}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 ring-1 ring-emerald-100">
-                <MapPin size={11} aria-hidden />
-                친구 맛집 한 지도에
-              </span>
+          {/* 메인 타이틀 */}
+          <h1 className="mt-5 text-[32px] font-black leading-[1.16] tracking-normal text-slate-900 [word-break:keep-all] sm:text-[44px] sm:leading-[1.1] lg:mt-6 lg:text-[52px] lg:leading-[1.1]">
+            친구가 추천한 맛집만
+            <br />
+            한 지도에 모으세요.
+          </h1>
 
-              {/* 메인 타이틀 */}
-              <h1
-                className="mt-5 text-[32px] font-black leading-[1.16] tracking-normal text-slate-900 [word-break:keep-all] sm:text-[44px] sm:leading-[1.1] lg:mt-6 lg:text-[60px] lg:leading-[1.07]"
-              >
-                친구가 추천한 맛집만
-                <br />
-                한 지도에 모으세요.
-              </h1>
+          {/* 서브 카피 */}
+          <p className="mt-4 text-[14px] font-semibold leading-[1.75] text-slate-600 [word-break:keep-all] sm:text-[15px] lg:mt-5 lg:text-[17px]">
+            카톡방에 흩어진 맛집 링크를 프로젝트별로 정리하고,
+            <br className="hidden sm:block" />
+            초대받은 친구들만 함께 볼 수 있는 비공개 맛집 지도를 만드세요.
+          </p>
 
-              {/* 서브 카피 */}
-              <p className="mt-4 max-w-[34rem] text-[14px] font-semibold leading-[1.75] text-slate-600 [word-break:keep-all] sm:text-[15px] lg:mt-5 lg:text-[18px]">
-                카톡방에 흩어진 맛집 링크를 프로젝트별로 정리하고,
-                <br className="hidden lg:block" />
-                초대받은 친구들만 함께 볼 수 있는 비공개 맛집 지도를 만드세요.
-              </p>
+          {/* 설명 */}
+          <p className="mt-3 text-[13px] leading-[1.75] text-slate-400 [word-break:keep-all] sm:text-[14px]">
+            색상 마커와 태그로 친구 맛집을 쉽게 모아봐요.
+          </p>
 
-              {/* 설명 */}
-              <p className="mt-3 max-w-[34rem] text-[13px] leading-[1.75] text-slate-400 [word-break:keep-all] sm:text-[14px] lg:text-[15px]">
-                색상 마커와 태그로
-                {" "}친구 맛집을 쉽게 모아봐요.
-              </p>
-
-              {/* CTA 버튼 */}
-              <div className="mt-7 flex w-full max-w-[420px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
-                <button
-                  className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-bold text-white shadow-md shadow-emerald-200/70 transition hover:bg-emerald-600 active:scale-[0.98] lg:h-[56px] lg:w-auto lg:text-[15px]"
-                  onClick={handleOpenCreate}
-                  type="button"
-                >
-                  <Plus size={18} />
-                  친구들과 지도 만들기
-                </button>
-                <button
-                  className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] lg:h-[56px] lg:w-auto"
-                  onClick={() => setJoinOpen(true)}
-                  type="button"
-                >
-                  <Link2 size={15} />
-                  초대 링크로 입장하기
-                </button>
-                <PwaInstallPrompt />
-              </div>
-            </div>
-
-            {/* ── 오른쪽: 서비스 미리보기 (데스크톱만) ── */}
-            <div className="mt-14 hidden lg:mt-0 lg:block">
-              <MockupPreview />
-            </div>
+          {/* CTA 버튼 */}
+          <div className="mx-auto mt-8 flex w-full max-w-[400px] flex-col gap-3">
+            <button
+              className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-bold text-white shadow-md shadow-emerald-200/70 transition hover:bg-emerald-600 active:scale-[0.98]"
+              onClick={handleOpenCreate}
+              type="button"
+            >
+              <Plus size={18} />
+              친구들과 지도 만들기
+            </button>
+            <button
+              className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98]"
+              onClick={() => setJoinOpen(true)}
+              type="button"
+            >
+              <Link2 size={15} />
+              초대 링크로 입장하기
+            </button>
+            <PwaInstallPrompt />
           </div>
         </div>
       </section>
