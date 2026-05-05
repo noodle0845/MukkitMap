@@ -351,13 +351,13 @@ function HomeContent() {
       {/* ══════════════════════════════════════════
           Hero
       ══════════════════════════════════════════ */}
-      <section className="px-5 pt-10 pb-12 lg:px-10 lg:pt-20 lg:pb-24">
+      <section className="px-6 pt-10 pb-12 lg:px-10 lg:pt-20 lg:pb-24">
         <div className="mx-auto max-w-[1200px]">
           {/* 2단 그리드: 데스크톱만 */}
           <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-20">
 
             {/* ── 왼쪽: 카피 + CTA ── */}
-            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <div className="mx-auto flex w-full max-w-[420px] flex-col items-center text-center lg:mx-0 lg:max-w-none lg:items-start lg:text-left">
               {/* 뱃지 */}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 ring-1 ring-emerald-100">
                 <MapPin size={11} aria-hidden />
@@ -365,43 +365,47 @@ function HomeContent() {
               </span>
 
               {/* 메인 타이틀 */}
-              {/* 모바일: 44px / 태블릿: 52px / 데스크톱: 60px */}
-              <h1 className="mt-5 text-[44px] font-black leading-[1.1] tracking-[-0.02em] text-slate-900 sm:text-[52px] lg:mt-6 lg:text-[60px] lg:leading-[1.07]">
-                친구 맛집,
+              <h1
+                className="mt-5 font-black tracking-[-0.02em] text-slate-900 lg:mt-6 lg:text-[60px] lg:leading-[1.07]"
+                style={{ fontSize: "clamp(42px, 11vw, 52px)", lineHeight: 1.1 }}
+              >
+                친구가 추천한 맛집만
                 <br />
-                한 지도에
+                한 지도에 모으세요.
               </h1>
 
               {/* 서브 카피 */}
-              <p className="mt-4 text-[16px] font-semibold leading-relaxed text-slate-600 lg:mt-5 lg:text-[18px]">
-                카톡방에 흩어진 맛집 추천을
-                <br />
-                먹킷맵에 모아보세요.
+              <p className="mt-4 text-[15px] font-semibold leading-relaxed text-slate-600 lg:mt-5 lg:text-[18px]">
+                카톡방에 흩어진 맛집 링크를 프로젝트별로 정리하고,
+                <br className="hidden lg:block" />
+                초대받은 친구들만 함께 볼 수 있는 비공개 맛집 지도를 만드세요.
               </p>
 
               {/* 설명 */}
-              <p className="mt-3 max-w-[280px] text-[14px] leading-relaxed text-slate-400 lg:max-w-none lg:text-[15px]">
-                색상 마커와 태그 필터로
-                {" "}친구 추천 맛집을 쉽게 정리해요.
+              <p className="mt-3 text-[14px] leading-relaxed text-slate-400 lg:text-[15px]">
+                색상 마커와 태그로
+                {" "}친구 맛집을 쉽게 모아봐요.
               </p>
 
               {/* CTA 버튼 */}
-              <div className="mt-8 flex w-full max-w-[360px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
+              <div className="mt-8 flex w-full max-w-[420px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-[14px] text-[15px] font-bold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-600 active:scale-[0.98] lg:w-auto lg:py-[15px] lg:text-[15px]"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-bold text-white shadow-md shadow-emerald-200/70 transition hover:bg-emerald-600 active:scale-[0.98] lg:w-auto lg:text-[15px]"
+                  style={{ height: "56px" }}
                   onClick={handleOpenCreate}
                   type="button"
                 >
                   <Plus size={18} />
-                  새 먹킷맵 만들기
+                  친구들과 지도 만들기
                 </button>
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-[14px] text-[15px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] lg:w-auto lg:py-[15px]"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] lg:w-auto"
+                  style={{ height: "56px" }}
                   onClick={() => setJoinOpen(true)}
                   type="button"
                 >
                   <Link2 size={15} />
-                  초대 링크로 참여하기
+                  초대 링크로 입장하기
                 </button>
               </div>
             </div>
@@ -417,23 +421,23 @@ function HomeContent() {
       {/* ══════════════════════════════════════════
           내 먹킷맵 섹션
       ══════════════════════════════════════════ */}
-      <section className="px-5 pb-20 lg:px-10">
+      <section className="px-6 pb-20 lg:px-10">
         <div className="mx-auto max-w-[1200px]">
 
           {/* 로그아웃 상태 */}
           {loggedOut && (
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm lg:px-6 lg:py-6">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                <LogIn size={18} />
+            <div className="mx-auto flex max-w-[420px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:max-w-none lg:gap-4 lg:px-6 lg:py-5">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 lg:h-10 lg:w-10">
+                <LogIn size={17} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-bold text-slate-800">내 먹킷맵 보기</p>
-                <p className="mt-0.5 text-[13px] text-slate-500">
+                <p className="text-[13px] font-bold text-slate-800 lg:text-[14px]">내 먹킷맵 보기</p>
+                <p className="mt-0.5 text-[12px] text-slate-500 lg:text-[13px]">
                   로그인하면 최근 만든 먹킷맵을 볼 수 있어요.
                 </p>
               </div>
               <button
-                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-emerald-600"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-2 text-[13px] font-bold text-white transition hover:bg-emerald-600"
                 onClick={() => router.push(getAuthUrl("/"))}
                 type="button"
               >
@@ -465,20 +469,24 @@ function HomeContent() {
               )}
 
               {isEmpty && (
-                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
-                    <MapPin size={18} className="text-slate-400" />
+                <div className="mx-auto flex max-w-[420px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:max-w-none lg:gap-4 lg:px-5 lg:py-5">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 lg:h-10 lg:w-10">
+                    <MapPin size={17} className="text-slate-400" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[14px] font-bold text-slate-800">아직 만든 먹킷맵이 없어요.</p>
-                    <p className="mt-0.5 text-[13px] text-slate-500">첫 먹킷맵을 만들어볼까요?</p>
+                    <p className="text-[13px] font-bold text-slate-800 lg:text-[14px]">
+                      아직 먹킷맵이 없어요
+                    </p>
+                    <p className="mt-0.5 text-[12px] text-slate-500 lg:text-[13px]">
+                      첫 먹킷맵을 만들어볼까요?
+                    </p>
                   </div>
                   <button
-                    className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 lg:px-3.5 lg:text-[13px]"
                     onClick={handleOpenCreate}
                     type="button"
                   >
-                    <Plus size={14} />
+                    <Plus size={13} />
                     만들기
                   </button>
                 </div>
