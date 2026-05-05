@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock, LogIn, UserPlus, ArrowLeft } from "lucide-react";
+import { ExternalLink, Mail, Lock, LogIn, UserPlus, ArrowLeft } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { getSupabaseClient } from "@/lib/supabaseClient";
 
@@ -15,17 +15,102 @@ function getErrorMessage(error: unknown) {
   return "잠시 후 다시 시도해주세요.";
 }
 
+/** 카카오톡·인스타그램 등 인앱 브라우저 감지 */
+function detectInAppBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /KAKAOTALK|KAKAO|Line\/|Instagram|FBAN|FBAV|Twitter|Snapchat|WeChat|MicroMessenger|NaverApp/i.test(ua);
+}
+
+/** Android Chrome으로 열기 intent URL */
+function getChromeIntentUrl(currentUrl: string) {
+  // Android: intent scheme으로 Chrome 강제 실행
+  const encoded = encodeURIComponent(currentUrl);
+  return `intent://${currentUrl.replace(/^https?:\/\//, "")}#Intent;scheme=https;package=com.android.chrome;end`;
+}
+
+function InAppBrowserWarning({ currentUrl }: { currentUrl: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(currentUrl).catch(() => {
+      const ta = document.createElement("textarea");
+      ta.value = currentUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    });
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 pb-16">
+      <div className="mb-8 flex flex-col items-center gap-3">
+        <GhostlyLogo className="w-[140px]" />
+      </div>
+
+      <div className="card w-full max-w-sm p-7 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-2xl">
+          🌐
+        </div>
+        <h1 className="title">외부 브라우저에서 열어주세요</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          카카오톡 안에서는 Google 로그인이 지원되지 않아요.
+          <br />
+          Chrome 또는 Safari에서 접속해주세요.
+        </p>
+
+        {/* Android: Chrome으로 직접 열기 시도 */}
+        <a
+          href={getChromeIntentUrl(currentUrl)}
+          className="btn-primary mt-5 w-full justify-center"
+        >
+          <ExternalLink size={16} />
+          Chrome으로 열기
+        </a>
+
+        {/* iOS / 공통: URL 복사 */}
+        <button
+          className="btn-ghost mt-2 w-full justify-center"
+          onClick={handleCopy}
+          type="button"
+        >
+          {copied ? "✅ 복사됨" : "🔗 주소 복사하기"}
+        </button>
+
+        <p className="mt-4 text-[12px] text-slate-400">
+          복사 후 Safari나 Chrome 주소창에 붙여넣으세요.
+        </p>
+      </div>
+    </main>
+  );
+}
+
 export function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") ?? "/";
 
+  const [isInApp, setIsInApp] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState("");
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setIsInApp(detectInAppBrowser());
+    setCurrentUrl(window.location.href);
+  }, []);
+
+  // 인앱 브라우저면 경고 화면 표시
+  if (isInApp) {
+    return <InAppBrowserWarning currentUrl={currentUrl} />;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
