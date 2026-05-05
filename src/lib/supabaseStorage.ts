@@ -259,6 +259,26 @@ export async function deleteProject(projectId: string): Promise<void> {
   throwOnError(error);
 }
 
+export async function updateProject(
+  projectId: string,
+  input: ProjectCreateInput
+): Promise<Project | null> {
+  if (!isSupabaseConfigured()) return localStore.updateProject(projectId, input);
+
+  const { data, error } = await supabase()
+    .from("projects")
+    .update({
+      name: input.name.trim(),
+      description: input.description.trim()
+    })
+    .eq("id", projectId)
+    .select()
+    .single();
+
+  throwOnError(error);
+  return data ? mapProject(data as ProjectRow) : null;
+}
+
 // ── Invite Code ───────────────────────────────────────────────────
 
 /** 초대 코드를 새로 발급(재생성)하고 반환 */
@@ -367,6 +387,27 @@ export async function deleteMember(memberId: string): Promise<void> {
   await supabase().from("places").delete().eq("member_id", memberId);
   const { error } = await supabase().from("members").delete().eq("id", memberId);
   throwOnError(error);
+}
+
+export async function updateMember(
+  memberId: string,
+  input: MemberCreateInput
+): Promise<Member | null> {
+  if (!isSupabaseConfigured()) return localStore.updateMember(memberId, input);
+
+  const { data, error } = await supabase()
+    .from("members")
+    .update({
+      nickname: input.nickname.trim(),
+      marker_color: input.markerColor,
+      role: input.role
+    })
+    .eq("id", memberId)
+    .select()
+    .single();
+
+  throwOnError(error);
+  return data ? mapMember(data as MemberRow) : null;
 }
 
 // ── Places ────────────────────────────────────────────────────────

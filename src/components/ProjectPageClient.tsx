@@ -382,14 +382,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   // 권한 헬퍼
   const isOwner = myMember?.role === "owner";
-  const canEdit =
-    !isSupabaseConfigured() || // 로컬 모드는 제한 없음
-    myMember?.role === "owner" ||
-    myMember?.role === "editor";
+  const canEdit = !isSupabaseConfigured() || !!myMember; // 멤버라면 누구나 편집 가능
   // 초대 링크 공유: 멤버라면 누구나 가능
   const canInvite = !isSupabaseConfigured() || !!myMember;
-  // 멤버 삭제·직접 추가 등 관리: 방장만
-  const canManageMembers = !isSupabaseConfigured() || isOwner;
+  // 참여자 관리(추가·수정·삭제): 멤버라면 누구나 가능
+  const canManageMembers = !isSupabaseConfigured() || !!myMember;
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
   const refreshProject = useCallback(async () => {
@@ -625,7 +622,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   // 초대 링크 생성/재생성
   async function handleGenerateInvite() {
-    if (!isOwner) return;
+    if (!myMember) return;
     setGeneratingInvite(true);
     try {
       const code = await regenerateInviteCode(projectId);
