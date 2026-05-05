@@ -427,19 +427,26 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     };
   }, [refreshProject, authLoading, user]);
 
-  // 멤버 0명이면 온보딩 모달 자동 오픈
+  // 내 멤버 프로필이 없으면 온보딩 모달 자동 오픈
   useEffect(() => {
-    if (
-      !isSupabaseConfigured() &&
-      loadStatus === "loaded" &&
-      project !== null &&
-      members.length === 0 &&
-      !onboardingShownRef.current
-    ) {
+    if (loadStatus !== "loaded" || project === null || onboardingShownRef.current) return;
+
+    // Supabase 모드: 현재 유저의 member 레코드가 없으면 온보딩
+    if (isSupabaseConfigured()) {
+      const myMember = members.find((m) => m.userId === user?.id);
+      if (!myMember) {
+        onboardingShownRef.current = true;
+        setSheet({ kind: "onboarding" });
+      }
+      return;
+    }
+
+    // 로컬 모드: 멤버 0명이면 온보딩
+    if (members.length === 0) {
       onboardingShownRef.current = true;
       setSheet({ kind: "onboarding" });
     }
-  }, [loadStatus, project, members.length]);
+  }, [loadStatus, project, members, user?.id]);
 
   // ── 필터 ─────────────────────────────────────────────────
   const filteredPlaces = useMemo(
@@ -475,10 +482,12 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   // ── 핸들러 ──────────────────────────────────────────────
   async function handleAddMember(
     input: Parameters<typeof createMember>[1],
-    closeAfter = false
+    closeAfter = false,
+    linkToCurrentUser = false  // 온보딩(본인 프로필)일 때만 true
   ) {
     try {
-      await createMember(projectId, input, user?.id ?? undefined);
+      const userId = linkToCurrentUser ? (user?.id ?? undefined) : undefined;
+      await createMember(projectId, input, userId);
       await refreshProject();
       if (closeAfter) setSheet({ kind: "closed" });
       toast.show({ title: "참여자가 추가됐어요", tone: "success" });
@@ -811,7 +820,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         onClose={() => setSheet({ kind: "closed" })}
         title="내 정보 설정"
       >
-        <OnboardingContent onSubmit={(input) => handleAddMember(input, true)} />
+        <OnboardingContent onSubmit={(input) => handleAddMember(input, true, true)} />
       </Sheet>
 
       {/* 참여자 관리 */}
