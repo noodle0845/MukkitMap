@@ -14,7 +14,6 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
-  Share2,
   Users
 } from "lucide-react";
 import { FilterBar } from "@/components/FilterPanel";
@@ -361,7 +360,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("loading");
   const [sheet, setSheet] = useState<SheetMode>({ kind: "closed" });
-  const [copied, setCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
 
@@ -560,7 +559,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }
 
   async function handleShare() {
-    const url = window.location.href;
+    const url = inviteCode
+      ? `${window.location.origin}/invite/${inviteCode}`
+      : window.location.href;
     try {
       await navigator.clipboard.writeText(url);
     } catch {
@@ -571,9 +572,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-    setCopied(true);
-    toast.show({ title: "공유 링크를 복사했어요", tone: "success" });
-    setTimeout(() => setCopied(false), 1600);
+    setInviteCopied(true);
+    toast.show({ title: "초대 링크를 복사했어요", tone: "success" });
+    setTimeout(() => setInviteCopied(false), 1600);
   }
 
   // 초대 링크 생성/재생성
@@ -718,14 +719,14 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             </button>
           )}
 
-          {/* 공유 */}
+          {/* 공유 (초대 링크 복사) */}
           <button
-            className={copied ? "btn-soft" : "btn-ghost"}
+            className={inviteCopied ? "btn-soft" : "btn-ghost"}
             onClick={handleShare}
             type="button"
           >
-            {copied ? <Check size={16} /> : <Share2 size={16} />}
-            {copied ? "복사됨" : "공유"}
+            {inviteCopied ? <Check size={16} /> : <Link2 size={16} />}
+            {inviteCopied ? "복사됨" : "공유"}
           </button>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { Palette, Plus } from "lucide-react";
+import { ChevronDown, Palette, Plus } from "lucide-react";
 import type { MemberCreateInput, MemberRole } from "@/lib/types";
 import { isHexColor } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -302,15 +302,21 @@ export function MemberForm({
         ) : (
           <label className="block">
             <span className="field-label">역할</span>
-            <select
-              className="field"
-              value={role}
-              onChange={(event) => setRole(event.target.value as MemberRole)}
-            >
-              <option value="editor">{ROLE_LABELS.editor}</option>
-              <option value="viewer">{ROLE_LABELS.viewer}</option>
-              <option value="owner">{ROLE_LABELS.owner}</option>
-            </select>
+            <div className="relative mt-1.5">
+              <select
+                className="field mt-0 w-full appearance-none pr-9"
+                value={role}
+                onChange={(event) => setRole(event.target.value as MemberRole)}
+              >
+                <option value="editor">{ROLE_LABELS.editor}</option>
+                <option value="viewer">{ROLE_LABELS.viewer}</option>
+                <option value="owner">{ROLE_LABELS.owner}</option>
+              </select>
+              <ChevronDown
+                size={16}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+            </div>
           </label>
         )}
 
