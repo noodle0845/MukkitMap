@@ -6,45 +6,32 @@ type GhostlyLogoProps = {
 export function GhostlyLogo({ className = "", variant = "full" }: GhostlyLogoProps) {
   if (variant === "mark" || variant === "character") {
     return (
-      <picture>
-        <source srcSet="/먹킷맵로고(캐릭터)-흰색.png" media="(prefers-color-scheme: dark)" />
-        <img
-          alt="먹킷맵"
-          className={`block h-9 w-9 select-none rounded-xl object-contain ${className}`}
-          draggable={false}
-          src="/mukkit-logo-character.png"
-        />
-      </picture>
+      <span
+        className={`inline-flex h-9 w-9 select-none items-center justify-center rounded-xl bg-emerald-500 text-[14px] font-black text-white ${className}`}
+        aria-label="먹킷맵"
+      >
+        먹
+      </span>
     );
   }
 
   if (variant === "square") {
     return (
-      <picture>
-        <source srcSet="/먹킷맵로고(캐릭터)-흰색.png" media="(prefers-color-scheme: dark)" />
-        <img
-          alt="먹킷맵"
-          className={`block h-10 w-10 select-none rounded-xl object-contain ${className}`}
-          draggable={false}
-          src="/mukkit-logo-character.png"
-        />
-      </picture>
+      <span
+        className={`inline-flex h-10 w-10 select-none items-center justify-center rounded-xl bg-emerald-500 text-[14px] font-black text-white ${className}`}
+        aria-label="먹킷맵"
+      >
+        먹
+      </span>
     );
   }
 
-  // full (horizontal) variant — 캐릭터 이미지 + 텍스트 조합
+  // full (horizontal) variant
   return (
-    <span className={`inline-flex select-none items-center gap-2 ${className}`}>
-      <picture>
-        <source srcSet="/먹킷맵로고(캐릭터)-흰색.png" media="(prefers-color-scheme: dark)" />
-        <img
-          alt=""
-          aria-hidden
-          className="block h-8 w-8 shrink-0 rounded-lg object-contain"
-          draggable={false}
-          src="/mukkit-logo-character.png"
-        />
-      </picture>
+    <span className={`inline-flex select-none items-center gap-2 ${className}`} aria-label="먹킷맵">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-[13px] font-black text-white">
+        먹
+      </span>
       <span className="text-[15px] font-black tracking-tight text-slate-900 dark:text-white">
         먹킷맵
       </span>
