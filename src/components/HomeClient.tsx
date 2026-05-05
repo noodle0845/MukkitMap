@@ -224,14 +224,15 @@ function HomeContent() {
     (authConfigured && authLoading) || (!loggedOut && loadStatus === "loading");
 
   return (
-    <main className="min-h-screen px-4 pb-24">
+    <main className="min-h-screen px-5 pb-24 sm:px-4">
       <div className="mx-auto max-w-lg">
-        <header className="flex items-center justify-between pt-8 pb-6">
-          <GhostlyLogo className="w-[140px] sm:w-[160px]" />
+        {/* ── 헤더 ── */}
+        <header className="flex items-center justify-between pt-5 pb-5 sm:pt-8 sm:pb-6">
+          <GhostlyLogo className="w-[120px] sm:w-[148px]" />
           {authConfigured ? (
             user ? (
               <button
-                className="btn-ghost px-3 py-2 text-[13px]"
+                className="btn-ghost h-10 px-3 text-[13px]"
                 onClick={signOut}
                 type="button"
               >
@@ -240,7 +241,7 @@ function HomeContent() {
               </button>
             ) : (
               <button
-                className="btn-ghost px-3 py-2 text-[13px]"
+                className="btn-ghost h-10 px-3 text-[13px]"
                 onClick={() => router.push(getAuthUrl("/"))}
                 type="button"
               >
@@ -251,26 +252,38 @@ function HomeContent() {
           ) : null}
         </header>
 
+        {/* ── Hero ── */}
         <section className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
             <MapPin size={11} aria-hidden />
             친구 맛집 한 지도에
           </span>
 
-          <h1 className="mt-4 text-[26px] font-black leading-snug text-slate-900 sm:text-4xl">
-            카톡방에 흩어진 친구 맛집을
+          {/* 메인 타이틀 — 모바일 36px / 태블릿 52px / 데스크톱 64px */}
+          <h1 className="mt-4 text-[36px] font-black leading-[1.18] tracking-tight text-slate-900 sm:text-[52px] sm:leading-[1.15] lg:text-[64px]">
+            친구 맛집,
             <br />
-            한 지도에 모으세요.
+            한 지도에
           </h1>
 
-          <p className="mt-3 max-w-[330px] text-[14px] leading-relaxed text-slate-500 sm:max-w-sm sm:text-[15px]">
-            참여자별 색상으로 구분되는 마커, 네이버 지도 검색 연동, 태그
-            필터까지. 첫 번째 프로젝트를 만들어 친구들과 공유해보세요.
+          {/* 서브 카피 */}
+          <p className="mt-3 text-[15px] font-semibold leading-snug text-slate-700 sm:text-[17px]">
+            카톡방에 흩어진 맛집 추천을
+            <br />
+            먹킷맵에 모아보세요.
           </p>
 
-          <div className="mt-8 flex w-full max-w-[340px] flex-col gap-2 sm:flex-row">
+          {/* 설명 */}
+          <p className="mt-4 max-w-[300px] text-[13px] leading-relaxed text-slate-400 sm:max-w-sm sm:text-[14px]">
+            참여자별 색상 마커, 네이버 지도 검색, 태그 필터로
+            <br className="hidden sm:block" />
+            {" "}친구들의 추천 맛집을 쉽게 정리할 수 있어요.
+          </p>
+
+          {/* CTA 버튼 — 모바일 세로 / sm 이상 가로 */}
+          <div className="mt-8 flex w-full max-w-sm flex-col gap-2.5 sm:flex-row sm:gap-3">
             <button
-              className="btn-primary flex-1 justify-center py-3.5 text-[15px]"
+              className="btn-primary w-full justify-center py-[14px] text-[15px] sm:flex-1"
               onClick={handleOpenCreate}
               type="button"
             >
@@ -278,12 +291,12 @@ function HomeContent() {
               새 먹킷맵 만들기
             </button>
             <button
-              className="btn-ghost flex-1 justify-center py-3.5 text-[15px]"
+              className="btn-ghost w-full justify-center py-[14px] text-[15px] sm:flex-1"
               onClick={() => setJoinOpen(true)}
               type="button"
             >
               <Link2 size={16} />
-              초대 링크 참여
+              초대 링크로 참여하기
             </button>
           </div>
         </section>

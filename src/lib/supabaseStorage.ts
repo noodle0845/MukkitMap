@@ -229,14 +229,16 @@ export async function getProjectBundle(projectId: string) {
 export async function createProject(input: ProjectCreateInput): Promise<Project> {
   if (!isSupabaseConfigured()) return localStore.createProject(input);
 
-  const { data, error } = await supabase()
-    .from("projects")
-    .insert({ name: input.name.trim(), description: input.description.trim() })
-    .select()
-    .single();
+  // SECURITY DEFINER RPC: 프로젝트 생성 + owner 등록을 RLS 우회해서 처리
+  const { data, error } = await supabase().rpc("create_project_as_owner", {
+    p_name: input.name.trim(),
+    p_description: input.description.trim()
+  });
 
   throwOnError(error);
-  return mapProject(data as ProjectRow);
+  const rows = Array.isArray(data) ? data : data ? [data] : [];
+  if (rows.length === 0) throw new Error("프로젝트 생성에 실패했어요");
+  return mapProject(rows[0] as ProjectRow);
 }
 
 export async function deleteProject(projectId: string): Promise<void> {
