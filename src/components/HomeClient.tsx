@@ -303,11 +303,11 @@ function HomeContent() {
           내 먹킷맵 섹션
       ══════════════════════════════════════════ */}
       <section className="px-6 pb-20 lg:px-10">
-        <div className="mx-auto max-w-[1200px]">
+        <div className="mx-auto max-w-[600px]">
 
           {/* 로그아웃 상태 */}
           {loggedOut && (
-            <div className="mx-auto flex max-w-[420px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:max-w-none lg:gap-4 lg:px-6 lg:py-5">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:gap-4 lg:px-6 lg:py-5">
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 lg:h-10 lg:w-10">
                 <LogIn size={17} />
               </div>
@@ -350,7 +350,7 @@ function HomeContent() {
               )}
 
               {isEmpty && (
-                <div className="mx-auto flex max-w-[420px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:max-w-none lg:gap-4 lg:px-5 lg:py-5">
+                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:gap-4 lg:px-5 lg:py-5">
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 lg:h-10 lg:w-10">
                     <MapPin size={17} className="text-slate-400" />
                   </div>
