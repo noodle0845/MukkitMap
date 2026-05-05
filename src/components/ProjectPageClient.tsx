@@ -45,6 +45,7 @@ import {
   deleteProject,
   getProjectBundle,
   regenerateInviteCode,
+  updateMember,
   updatePlace
 } from "@/lib/supabaseStorage";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
@@ -95,6 +96,7 @@ type SheetMode =
   | { kind: "closed" }
   | { kind: "onboarding" }
   | { kind: "members" }
+  | { kind: "member-edit"; memberId: string }
   | { kind: "place-create" }
   | { kind: "place-edit"; placeId: string }
   | { kind: "place-detail"; placeId: string };
@@ -475,6 +477,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       ? places.find((p) => p.id === sheet.placeId) ?? null
       : null;
 
+  const editingMember =
+    sheet.kind === "member-edit"
+      ? members.find((m) => m.id === sheet.memberId) ?? null
+      : null;
+
   const detailPlace =
     sheet.kind === "place-detail"
       ? filteredPlaces.find((p) => p.id === sheet.placeId) ??
@@ -509,7 +516,49 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     }
   }
 
+  async function handleUpdateMember(member: Member, input: Parameters<typeof updateMember>[1]) {
+    const ownerCount = members.filter((item) => item.role === "owner").length;
+    if (member.role === "owner" && input.role !== "owner" && ownerCount <= 1) {
+      toast.show({
+        title: "방장이 최소 1명은 필요해요",
+        description: "다른 참여자를 방장으로 바꾼 뒤 역할을 변경해주세요.",
+        tone: "error"
+      });
+      return;
+    }
+
+    try {
+      await updateMember(member.id, input);
+      await refreshProject();
+      setSheet({ kind: "members" });
+      toast.show({ title: `${input.nickname.trim()} 참여자를 수정했어요`, tone: "success" });
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "참여자 수정에 실패했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    }
+  }
+
   async function handleDeleteMember(member: Member) {
+    const ownerCount = members.filter((item) => item.role === "owner").length;
+    if (member.role === "owner" && ownerCount <= 1) {
+      toast.show({
+        title: "마지막 방장은 삭제할 수 없어요",
+        description: "다른 참여자를 방장으로 바꾼 뒤 다시 시도해주세요.",
+        tone: "error"
+      });
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `"${member.nickname}" 참여자를 삭제할까요?\n이 참여자가 등록한 장소도 함께 삭제됩니다.`
+      )
+    ) return;
+
     try {
       await deleteMember(member.id);
       setSelectedPlaceId(null);
@@ -902,6 +951,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         <div className="space-y-6">
           <MemberList
             members={members}
+            onEdit={canManageMembers ? (m) => setSheet({ kind: "member-edit", memberId: m.id }) : undefined}
             onDelete={canManageMembers ? handleDeleteMember : undefined}
           />
           {/* 초대 링크 섹션 - 멤버라면 공유 가능 */}
@@ -954,6 +1004,23 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             </div>
           )}
         </div>
+      </Sheet>
+
+      {/* 참여자 수정 */}
+      <Sheet
+        open={sheet.kind === "member-edit"}
+        onClose={() => setSheet({ kind: "members" })}
+        title="참여자 수정"
+        description="닉네임, 마커 색상, 역할을 바꿀 수 있어요."
+      >
+        {editingMember && (
+          <MemberForm
+            key={editingMember.id}
+            initialMember={editingMember}
+            submitLabel="저장하기"
+            onSubmit={(input) => handleUpdateMember(editingMember, input)}
+          />
+        )}
       </Sheet>
 
       {/* 장소 추가/수정 */}
