@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { ChevronDown, Palette, Plus } from "lucide-react";
-import type { MemberCreateInput, MemberRole } from "@/lib/types";
+import type { Member, MemberCreateInput, MemberRole } from "@/lib/types";
 import { isHexColor } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 
@@ -11,6 +11,7 @@ type MemberFormProps = {
   onSubmit: (input: MemberCreateInput) => void;
   defaultRole?: MemberRole;
   fixedRole?: MemberRole;
+  initialMember?: Member;
   submitLabel?: string;
 };
 
@@ -160,17 +161,44 @@ export function MemberForm({
   onSubmit,
   defaultRole = "editor",
   fixedRole,
+  initialMember,
   submitLabel = "참여자 추가"
 }: MemberFormProps) {
-  const [nickname, setNickname] = useState("");
-  const [markerColor, setMarkerColor] = useState(PRESET_COLORS[0]);
-  const [role, setRole] = useState<MemberRole>(fixedRole ?? defaultRole);
+  const [nickname, setNickname] = useState(initialMember?.nickname ?? "");
+  const [markerColor, setMarkerColor] = useState(
+    initialMember?.markerColor ?? PRESET_COLORS[0]
+  );
+  const [role, setRole] = useState<MemberRole>(
+    fixedRole ?? initialMember?.role ?? defaultRole
+  );
   const [error, setError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [draftColor, setDraftColor] = useState(PRESET_COLORS[0]);
-  const [hexInput, setHexInput] = useState(PRESET_COLORS[0].slice(1).toUpperCase());
-  const [hsv, setHsv] = useState<Hsv>(() => rgbToHsv(hexToRgb(PRESET_COLORS[0])!));
+  const [draftColor, setDraftColor] = useState(
+    initialMember?.markerColor ?? PRESET_COLORS[0]
+  );
+  const [hexInput, setHexInput] = useState(
+    (initialMember?.markerColor ?? PRESET_COLORS[0]).slice(1).toUpperCase()
+  );
+  const [hsv, setHsv] = useState<Hsv>(() =>
+    rgbToHsv(hexToRgb(initialMember?.markerColor ?? PRESET_COLORS[0])!)
+  );
   const colorPlaneRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const nextColor = initialMember?.markerColor ?? PRESET_COLORS[0];
+    setNickname(initialMember?.nickname ?? "");
+    setMarkerColor(nextColor);
+    setRole(fixedRole ?? initialMember?.role ?? defaultRole);
+    updateDraftColor(nextColor);
+    setError("");
+  }, [
+    defaultRole,
+    fixedRole,
+    initialMember?.id,
+    initialMember?.markerColor,
+    initialMember?.nickname,
+    initialMember?.role
+  ]);
 
   const draftRgb = useMemo(
     () => hexToRgb(draftColor) ?? { r: 0, g: 0, b: 0 },
@@ -246,10 +274,12 @@ export function MemberForm({
       return;
     }
     onSubmit({ nickname, markerColor, role: fixedRole ?? role });
-    setNickname("");
-    setRole(fixedRole ?? defaultRole);
-    setMarkerColor(PRESET_COLORS[0]);
-    updateDraftColor(PRESET_COLORS[0]);
+    if (!initialMember) {
+      setNickname("");
+      setRole(fixedRole ?? defaultRole);
+      setMarkerColor(PRESET_COLORS[0]);
+      updateDraftColor(PRESET_COLORS[0]);
+    }
     setError("");
   }
 

@@ -24,7 +24,8 @@ import {
   createProject,
   deleteProject,
   getProjectCounts,
-  getProjects
+  getProjects,
+  updateProject
 } from "@/lib/supabaseStorage";
 
 const LOAD_TIMEOUT_MS = 5000;
@@ -78,6 +79,7 @@ function HomeContent() {
   const [loadErrorMsg, setLoadErrorMsg] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinUrl, setJoinUrl] = useState("");
   const [joinError, setJoinError] = useState("");
@@ -159,6 +161,28 @@ function HomeContent() {
       console.error(error);
       toast.show({
         title: "프로젝트 생성에 실패했어요",
+        description: getErrorMessage(error),
+        tone: "error"
+      });
+    }
+  }
+
+  async function handleUpdateProject(input: ProjectCreateInput) {
+    if (!editingProject) return;
+
+    try {
+      await updateProject(editingProject.id, input);
+      setEditingProject(null);
+      await loadProjects();
+      toast.show({
+        title: "먹킷맵 정보를 수정했어요",
+        description: `${input.name.trim()} 정보가 저장됐습니다.`,
+        tone: "success"
+      });
+    } catch (error) {
+      console.error(error);
+      toast.show({
+        title: "먹킷맵 수정에 실패했어요",
         description: getErrorMessage(error),
         tone: "error"
       });
@@ -377,7 +401,11 @@ function HomeContent() {
                 <ProjectList
                   projects={projects}
                   counts={counts}
+                  onEdit={setEditingProject}
                   onDelete={handleDeleteProject}
+                  canEditProject={(project) =>
+                    !authConfigured || counts[project.id]?.myRole === "owner"
+                  }
                   canDeleteProject={(project) =>
                     !authConfigured || counts[project.id]?.myRole === "owner"
                   }
@@ -400,6 +428,26 @@ function HomeContent() {
             </p>
           </div>
           <ProjectForm onSubmit={handleCreateProject} />
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={Boolean(editingProject)}
+        onClose={() => setEditingProject(null)}
+        maxWidth={560}
+      >
+        <div className="space-y-5">
+          <div>
+            <h2 className="title">먹킷맵 수정</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              이름과 설명을 바꾸면 친구들에게 보이는 정보도 함께 바뀌어요.
+            </p>
+          </div>
+          <ProjectForm
+            initialProject={editingProject ?? undefined}
+            onSubmit={handleUpdateProject}
+            submitLabel="먹킷맵 수정"
+          />
         </div>
       </BottomSheet>
 

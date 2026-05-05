@@ -1,17 +1,30 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import type { ProjectCreateInput } from "@/lib/types";
+import type { Project, ProjectCreateInput } from "@/lib/types";
 
 type ProjectFormProps = {
   onSubmit: (input: ProjectCreateInput) => void;
+  initialProject?: Project;
+  submitLabel?: string;
 };
 
-export function ProjectForm({ onSubmit }: ProjectFormProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+export function ProjectForm({
+  onSubmit,
+  initialProject,
+  submitLabel = "프로젝트 만들기"
+}: ProjectFormProps) {
+  const [name, setName] = useState(initialProject?.name ?? "");
+  const [description, setDescription] = useState(initialProject?.description ?? "");
   const [error, setError] = useState("");
+  const isEditing = Boolean(initialProject);
+
+  useEffect(() => {
+    setName(initialProject?.name ?? "");
+    setDescription(initialProject?.description ?? "");
+    setError("");
+  }, [initialProject?.id, initialProject?.name, initialProject?.description]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,8 +35,10 @@ export function ProjectForm({ onSubmit }: ProjectFormProps) {
     }
 
     onSubmit({ name, description });
-    setName("");
-    setDescription("");
+    if (!isEditing) {
+      setName("");
+      setDescription("");
+    }
     setError("");
   }
 
@@ -57,7 +72,7 @@ export function ProjectForm({ onSubmit }: ProjectFormProps) {
       ) : null}
 
       <button className="btn-primary w-full" type="submit">
-        프로젝트 만들기
+        {submitLabel}
         <ArrowRight size={16} />
       </button>
     </form>
