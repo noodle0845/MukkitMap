@@ -379,6 +379,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     !isSupabaseConfigured() || // 로컬 모드는 제한 없음
     myMember?.role === "owner" ||
     myMember?.role === "editor";
+  // 초대 링크 공유: 멤버라면 누구나 가능
+  const canInvite = !isSupabaseConfigured() || !!myMember;
+  // 멤버 삭제·직접 추가 등 관리: 방장만
   const canManageMembers = !isSupabaseConfigured() || isOwner;
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
@@ -694,8 +697,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             {members.length}명
           </button>
 
-          {/* 초대 링크 (admin) */}
-          {canManageMembers && (
+          {/* 초대 링크 - 멤버라면 누구나 공유 가능 */}
+          {canInvite && (
             <button
               className={inviteCopied ? "btn-soft" : "btn-ghost"}
               onClick={inviteCode ? handleCopyInvite : handleGenerateInvite}
@@ -835,8 +838,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             members={members}
             onDelete={canManageMembers ? handleDeleteMember : undefined}
           />
-          {/* 초대 링크 섹션 (admin) */}
-          {canManageMembers && isSupabaseConfigured() && (
+          {/* 초대 링크 섹션 - 멤버라면 공유 가능 */}
+          {canInvite && isSupabaseConfigured() && (
             <div className="rounded-xl border border-[var(--border-soft)] p-4">
               <p className="caption mb-2">초대 링크</p>
               {inviteCode ? (
