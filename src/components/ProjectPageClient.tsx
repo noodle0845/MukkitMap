@@ -191,30 +191,88 @@ function AccessDeniedScreen() {
   );
 }
 
+function extractInviteCodeFromInput(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  try {
+    const url = new URL(trimmed);
+    const match = url.pathname.match(/\/invite\/([^/?#\s]+)/);
+    return match?.[1] ?? "";
+  } catch {
+    const match = trimmed.match(/(?:^|\/)invite\/([^/?#\s]+)/);
+    return match?.[1] ?? trimmed.replace(/^#/, "");
+  }
+}
+
 function AccessDeniedScreenV2({
-  onChangeAccount
+  onChangeAccount,
+  user,
+  projectId,
+  onJoined
 }: {
   onChangeAccount: () => void;
+  user: { id: string } | null;
+  projectId: string;
 }) {
+  const router = useRouter();
+  const [inviteInput, setInviteInput] = useState("");
+  const [joinError, setJoinError] = useState("");
+
+  function handleJoinWithInvite() {
+    const code = extractInviteCodeFromInput(inviteInput);
+    if (!code) {
+      setJoinError("초대 링크 또는 초대 코드를 입력해주세요.");
+      return;
+    }
+    // 초대 페이지에서 닉네임 입력 + 참여 처리
+    router.push(`/invite/${code}`);
+  }
+
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <section className="card w-full max-w-sm p-8 text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
-          <span className="text-2xl font-black text-amber-500">!</span>
+          <span className="text-2xl">🔒</span>
         </div>
-        <h1 className="title">이 먹킷맵에 접근할 수 없어요.</h1>
+        <h1 className="title">이 먹킷맵에 접근할 수 없어요</h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          초대받은 계정으로 로그인했는지 확인해주세요.
+          초대 링크로 참여해야 지도를 볼 수 있어요.
+          <br />
+          친구에게 초대 링크를 받아 붙여넣어 주세요.
         </p>
-        <div className="mt-6 flex flex-col gap-2">
+
+        {/* 초대 링크 입력 */}
+        <div className="mt-5 space-y-2 text-left">
+          <input
+            className="w-full rounded-xl border border-[var(--border)] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            placeholder="초대 링크 붙여넣기"
+            value={inviteInput}
+            onChange={(e) => { setInviteInput(e.target.value); setJoinError(""); }}
+            onKeyDown={(e) => e.key === "Enter" && handleJoinWithInvite()}
+          />
+          {joinError && (
+            <p className="text-xs font-semibold text-red-500">{joinError}</p>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2">
           <button
             className="btn-primary w-full justify-center"
-            onClick={onChangeAccount}
+            onClick={handleJoinWithInvite}
             type="button"
           >
             <LogIn size={15} />
-            로그인 계정 변경
+            초대 링크로 참여하기
           </button>
+          {user && (
+            <button
+              className="btn-ghost w-full justify-center text-slate-400"
+              onClick={onChangeAccount}
+              type="button"
+            >
+              다른 계정으로 로그인
+            </button>
+          )}
           <Link className="btn-ghost w-full justify-center" href="/">
             <Home size={15} />
             처음으로 돌아가기
@@ -558,7 +616,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   async function handleChangeAccount() {
     await signOut();
-    router.push(`/auth?returnTo=/projects/${projectId}`);
+    router.push("/auth");
   }
 
   // ── 화면 분기 ──────────────────────────────────────────────
@@ -573,7 +631,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }
 
   if (loadStatus === "access-denied") {
-    return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
+    return <AccessDeniedScreenV2
+          onChangeAccount={handleChangeAccount}
+          user={user}
+          projectId={projectId}
+        />;
   }
 
   if (loadStatus === "timeout" || loadStatus === "network-error") {
@@ -583,7 +645,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   if (loadStatus === "loaded" && !project) {
     // Supabase 모드: RLS가 빈 배열로 막은 것 → 접근 권한 없음
     if (isSupabaseConfigured()) {
-      return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
+      return <AccessDeniedScreenV2
+          onChangeAccount={handleChangeAccount}
+          user={user}
+          projectId={projectId}
+        />;
     }
     return <NotFoundScreen />;
   }
@@ -591,7 +657,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   if (!project) return null;
 
   if (isSupabaseConfigured() && !myMember) {
-    return <AccessDeniedScreenV2 onChangeAccount={handleChangeAccount} />;
+    return <AccessDeniedScreenV2
+          onChangeAccount={handleChangeAccount}
+          user={user}
+          projectId={projectId}
+        />;
   }
 
   const hasNoPlaces = places.length === 0;
