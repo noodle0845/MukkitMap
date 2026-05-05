@@ -91,7 +91,11 @@ export function AuthPage() {
     const supabase = getSupabaseClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "kakao",
-      options: { redirectTo }
+      options: {
+        redirectTo,
+        // Avoid KOE205 when Kakao rejects unapproved default scopes such as account_email.
+        scopes: "profile_nickname profile_image"
+      }
     });
     if (error) setError(getErrorMessage(error));
   }
