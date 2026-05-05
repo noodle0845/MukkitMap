@@ -112,6 +112,25 @@ export function deleteProject(projectId: string) {
   });
 }
 
+export function updateProject(projectId: string, input: ProjectCreateInput) {
+  const store = getStore();
+  let updatedProject: Project | null = null;
+
+  const projects = store.projects.map((project) => {
+    if (project.id !== projectId) return project;
+
+    updatedProject = {
+      ...project,
+      name: input.name.trim(),
+      description: input.description.trim()
+    };
+    return updatedProject;
+  });
+
+  saveStore({ ...store, projects });
+  return updatedProject;
+}
+
 export function createMember(projectId: string, input: MemberCreateInput) {
   const store = getStore();
   const member: Member = {
@@ -140,6 +159,26 @@ export function deleteMember(memberId: string) {
     members: store.members.filter((member) => member.id !== memberId),
     places: store.places.filter((place) => place.memberId !== memberId)
   });
+}
+
+export function updateMember(memberId: string, input: MemberCreateInput) {
+  const store = getStore();
+  let updatedMember: Member | null = null;
+
+  const members = store.members.map((member) => {
+    if (member.id !== memberId) return member;
+
+    updatedMember = {
+      ...member,
+      nickname: input.nickname.trim(),
+      markerColor: input.markerColor,
+      role: input.role
+    };
+    return updatedMember;
+  });
+
+  saveStore({ ...store, members });
+  return updatedMember;
 }
 
 export function createPlace(projectId: string, input: PlaceCreateInput) {
@@ -211,4 +250,3 @@ export function deletePlace(placeId: string) {
     places: store.places.filter((place) => place.id !== placeId)
   });
 }
-
