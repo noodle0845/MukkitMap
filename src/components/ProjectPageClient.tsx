@@ -557,25 +557,6 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     }
   }
 
-  async function handleShare() {
-    const url = inviteCode
-      ? `${window.location.origin}/invite/${inviteCode}`
-      : window.location.href;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setInviteCopied(true);
-    toast.show({ title: "초대 링크를 복사했어요", tone: "success" });
-    setTimeout(() => setInviteCopied(false), 1600);
-  }
-
   // 초대 링크 생성/재생성
   async function handleGenerateInvite() {
     if (!isOwner) return;
@@ -585,6 +566,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       setInviteCode(code);
       const inviteUrl = `${window.location.origin}/invite/${code}`;
       await navigator.clipboard.writeText(inviteUrl).catch(() => {});
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 1600);
       toast.show({
         title: "초대 링크를 생성했어요",
         description: "클립보드에 복사됐어요.",
@@ -612,6 +595,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       document.body.removeChild(ta);
     }
     toast.show({ title: "초대 링크를 복사했어요", tone: "success" });
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 1600);
   }
 
   async function handleChangeAccount() {
@@ -703,7 +688,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
           {/* 초대 링크 (admin) */}
           {canManageMembers && (
             <button
-              className="btn-ghost"
+              className={inviteCopied ? "btn-soft" : "btn-ghost"}
               onClick={inviteCode ? handleCopyInvite : handleGenerateInvite}
               disabled={generatingInvite}
               title="초대 링크"
@@ -711,22 +696,15 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             >
               {generatingInvite ? (
                 <RotateCcw size={16} className="animate-spin" />
+              ) : inviteCopied ? (
+                <Check size={16} />
               ) : (
                 <Link2 size={16} />
               )}
-              <span className="hidden sm:inline">초대</span>
+              <span className="hidden sm:inline">{inviteCopied ? "복사됨" : "초대 링크"}</span>
+              <span className="sm:hidden">{inviteCopied ? "복사됨" : "초대"}</span>
             </button>
           )}
-
-          {/* 공유 (초대 링크 복사) */}
-          <button
-            className={inviteCopied ? "btn-soft" : "btn-ghost"}
-            onClick={handleShare}
-            type="button"
-          >
-            {inviteCopied ? <Check size={16} /> : <Link2 size={16} />}
-            {inviteCopied ? "복사됨" : "공유"}
-          </button>
         </div>
 
         {/* 필터 */}
