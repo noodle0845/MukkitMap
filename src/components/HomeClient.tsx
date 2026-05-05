@@ -403,12 +403,8 @@ function HomeContent() {
                   counts={counts}
                   onEdit={setEditingProject}
                   onDelete={handleDeleteProject}
-                  canEditProject={(project) =>
-                    !authConfigured || counts[project.id]?.myRole === "owner"
-                  }
-                  canDeleteProject={(project) =>
-                    !authConfigured || counts[project.id]?.myRole === "owner"
-                  }
+                  canEditProject={() => true}
+                  canDeleteProject={() => true}
                 />
               )}
             </>
