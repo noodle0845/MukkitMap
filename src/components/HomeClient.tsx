@@ -10,7 +10,7 @@ import {
   MapPin,
   Plus,
   RefreshCw,
-  Sparkles
+  Users
 } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { ProjectForm } from "@/components/ProjectForm";
@@ -44,7 +44,6 @@ function getAuthUrl(returnTo: string) {
 function extractInviteCode(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
-
   try {
     const url = new URL(trimmed);
     const match = url.pathname.match(/\/invite\/([^/?#\s]+)/);
@@ -55,19 +54,120 @@ function extractInviteCode(value: string) {
   }
 }
 
+// ── 로딩 스켈레톤 ────────────────────────────────────────────────
 function ProjectSkeleton() {
   return (
     <div className="space-y-3">
       {[1, 2].map((i) => (
-        <div
-          key={i}
-          className="h-[126px] animate-pulse rounded-3xl bg-slate-100"
-        />
+        <div key={i} className="h-[100px] animate-pulse rounded-2xl bg-slate-100" />
       ))}
     </div>
   );
 }
 
+// ── 데스크톱용 서비스 미리보기 mockup ────────────────────────────
+const MOCK_PLACES = [
+  { name: "전포 감성 카페", member: "라면", color: "#10b981", tag: "카페" },
+  { name: "서면 국밥집", member: "워렌", color: "#3b82f6", tag: "국밥" },
+  { name: "광안리 오션 술집", member: "민지", color: "#a855f7", tag: "술집" },
+];
+
+function MockupPreview() {
+  return (
+    <div className="relative select-none">
+      {/* 배경 장식 */}
+      <div className="pointer-events-none absolute -top-6 -right-6 h-32 w-32 rounded-full bg-emerald-100 opacity-50 blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-blue-100 opacity-40 blur-2xl" />
+
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/60">
+        {/* 지도 mockup 영역 */}
+        <div className="relative h-52 overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-slate-100">
+          {/* SVG 도로 선 */}
+          <svg className="absolute inset-0 h-full w-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+            <line x1="0" y1="80" x2="100%" y2="80" stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="0" />
+            <line x1="0" y1="140" x2="100%" y2="140" stroke="#cbd5e1" strokeWidth="1" />
+            <line x1="30%" y1="0" x2="30%" y2="100%" stroke="#94a3b8" strokeWidth="1.5" />
+            <line x1="70%" y1="0" x2="70%" y2="100%" stroke="#cbd5e1" strokeWidth="1" />
+          </svg>
+          {/* 블록 */}
+          <div className="absolute left-[31%] top-[0%] h-16 w-[38%] rounded bg-slate-200/60" />
+          <div className="absolute left-[31%] top-[58%] h-10 w-[18%] rounded bg-slate-200/50" />
+          <div className="absolute left-[72%] top-[0%] h-20 w-[27%] rounded bg-slate-200/50" />
+
+          {/* 마커 */}
+          <div className="absolute" style={{ top: "28%", left: "22%" }}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[0].color }}>
+              라
+            </div>
+          </div>
+          <div className="absolute" style={{ top: "52%", left: "55%" }}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[1].color }}>
+              워
+            </div>
+          </div>
+          <div className="absolute" style={{ top: "18%", left: "76%" }}>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full shadow-lg text-white text-[11px] font-black ring-2 ring-white" style={{ backgroundColor: MOCK_PLACES[2].color }}>
+              민
+            </div>
+          </div>
+
+          {/* 지도 레이블 */}
+          <div className="absolute bottom-2 right-3 rounded-md bg-white/70 px-2 py-1 text-[10px] font-semibold text-slate-400 backdrop-blur-sm">
+            먹킷맵 · 부산 친구 모임
+          </div>
+        </div>
+
+        {/* 카드 헤더 */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">오늘의 친구 추천</p>
+            <h3 className="text-[15px] font-bold text-slate-900">부산 친구 먹킷맵</h3>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-semibold text-slate-500">
+            <Users size={12} />
+            3명
+          </div>
+        </div>
+
+        {/* 장소 리스트 */}
+        <div className="space-y-1.5 px-4 py-3">
+          {MOCK_PLACES.map((p) => (
+            <div key={p.name} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+              <div
+                className="h-2.5 w-2.5 flex-shrink-0 rounded-full ring-2 ring-white"
+                style={{ backgroundColor: p.color }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-semibold text-slate-800">{p.name}</p>
+                <p className="text-[11px] text-slate-400">{p.member} 추천</p>
+              </div>
+              <span
+                className="flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ backgroundColor: `${p.color}18`, color: p.color }}
+              >
+                #{p.tag}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* 태그 필터 */}
+        <div className="flex flex-wrap gap-2 px-5 pb-4">
+          {["#카페", "#술집", "#데이트", "#국밥"].map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-semibold text-slate-500"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 메인 컨텐츠 ──────────────────────────────────────────────────
 function HomeContent() {
   const router = useRouter();
   const toast = useToast();
@@ -122,7 +222,6 @@ function HomeContent() {
 
   useEffect(() => {
     if (authConfigured && authLoading) return;
-
     if (authConfigured && !user) {
       activeRef.current = false;
       if (tidRef.current) clearTimeout(tidRef.current);
@@ -132,7 +231,6 @@ function HomeContent() {
       setLoadErrorMsg("");
       return;
     }
-
     loadProjects();
     return () => {
       activeRef.current = false;
@@ -174,9 +272,7 @@ function HomeContent() {
       !window.confirm(
         `"${project.name}" 먹킷맵을 삭제할까요?\n참여자와 장소도 함께 삭제됩니다.`
       )
-    ) {
-      return;
-    }
+    ) return;
 
     try {
       await deleteProject(project.id);
@@ -202,17 +298,14 @@ function HomeContent() {
       setJoinError("초대 링크 또는 초대 코드를 입력해주세요.");
       return;
     }
-
     const invitePath = `/invite/${inviteCode}`;
     setJoinOpen(false);
     setJoinUrl("");
     setJoinError("");
-
     if (authConfigured && !user) {
       router.push(getAuthUrl(invitePath));
       return;
     }
-
     router.push(invitePath);
   }
 
@@ -224,108 +317,139 @@ function HomeContent() {
     (authConfigured && authLoading) || (!loggedOut && loadStatus === "loading");
 
   return (
-    <main className="min-h-screen px-5 pb-24 sm:px-4">
-      <div className="mx-auto max-w-lg">
-        {/* ── 헤더 ── */}
-        <header className="flex items-center justify-between pt-5 pb-5 sm:pt-8 sm:pb-6">
-          <GhostlyLogo className="w-[120px] sm:w-[148px]" />
+    <main className="min-h-screen overflow-x-hidden bg-[#f8fafc]">
+      {/* ══════════════════════════════════════════
+          헤더
+      ══════════════════════════════════════════ */}
+      <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 lg:px-10 lg:py-5">
+          <GhostlyLogo className="w-[108px] lg:w-[136px]" />
           {authConfigured ? (
             user ? (
               <button
-                className="btn-ghost h-10 px-3 text-[13px]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 lg:h-10 lg:px-4 lg:text-[14px]"
                 onClick={signOut}
                 type="button"
               >
-                <LogOut size={15} />
+                <LogOut size={14} />
                 로그아웃
               </button>
             ) : (
               <button
-                className="btn-ghost h-10 px-3 text-[13px]"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 lg:h-10 lg:px-4 lg:text-[14px]"
                 onClick={() => router.push(getAuthUrl("/"))}
                 type="button"
               >
-                <LogIn size={15} />
+                <LogIn size={14} />
                 로그인
               </button>
             )
           ) : null}
-        </header>
+        </div>
+      </header>
 
-        {/* ── Hero ── */}
-        <section className="flex flex-col items-center text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-            <MapPin size={11} aria-hidden />
-            친구 맛집 한 지도에
-          </span>
+      {/* ══════════════════════════════════════════
+          Hero
+      ══════════════════════════════════════════ */}
+      <section className="px-5 pt-10 pb-12 lg:px-10 lg:pt-20 lg:pb-24">
+        <div className="mx-auto max-w-[1200px]">
+          {/* 2단 그리드: 데스크톱만 */}
+          <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-20">
 
-          {/* 메인 타이틀 — 모바일 36px / 태블릿 52px / 데스크톱 64px */}
-          <h1 className="mt-4 text-[36px] font-black leading-[1.18] tracking-tight text-slate-900 sm:text-[52px] sm:leading-[1.15] lg:text-[64px]">
-            친구 맛집,
-            <br />
-            한 지도에
-          </h1>
+            {/* ── 왼쪽: 카피 + CTA ── */}
+            <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+              {/* 뱃지 */}
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-[12px] font-bold text-emerald-700 ring-1 ring-emerald-100">
+                <MapPin size={11} aria-hidden />
+                친구 맛집 한 지도에
+              </span>
 
-          {/* 서브 카피 */}
-          <p className="mt-3 text-[15px] font-semibold leading-snug text-slate-700 sm:text-[17px]">
-            카톡방에 흩어진 맛집 추천을
-            <br />
-            먹킷맵에 모아보세요.
-          </p>
+              {/* 메인 타이틀 */}
+              {/* 모바일: 44px / 태블릿: 52px / 데스크톱: 60px */}
+              <h1 className="mt-5 text-[44px] font-black leading-[1.1] tracking-[-0.02em] text-slate-900 sm:text-[52px] lg:mt-6 lg:text-[60px] lg:leading-[1.07]">
+                친구 맛집,
+                <br />
+                한 지도에
+              </h1>
 
-          {/* 설명 */}
-          <p className="mt-4 max-w-[300px] text-[13px] leading-relaxed text-slate-400 sm:max-w-sm sm:text-[14px]">
-            참여자별 색상 마커, 네이버 지도 검색, 태그 필터로
-            <br className="hidden sm:block" />
-            {" "}친구들의 추천 맛집을 쉽게 정리할 수 있어요.
-          </p>
-
-          {/* CTA 버튼 — 모바일 세로 / sm 이상 가로 */}
-          <div className="mt-8 flex w-full max-w-sm flex-col gap-2.5 sm:flex-row sm:gap-3">
-            <button
-              className="btn-primary w-full justify-center py-[14px] text-[15px] sm:flex-1"
-              onClick={handleOpenCreate}
-              type="button"
-            >
-              <Plus size={18} />
-              새 먹킷맵 만들기
-            </button>
-            <button
-              className="btn-ghost w-full justify-center py-[14px] text-[15px] sm:flex-1"
-              onClick={() => setJoinOpen(true)}
-              type="button"
-            >
-              <Link2 size={16} />
-              초대 링크로 참여하기
-            </button>
-          </div>
-        </section>
-
-        <section className="mt-12">
-          {loggedOut ? (
-            <div className="rounded-3xl border border-[var(--border)] bg-white px-6 py-8 text-center shadow-soft">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                <LogIn size={22} />
-              </div>
-              <h2 className="title">내 먹킷맵 보기</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                로그인하면 최근 만든 먹킷맵을 볼 수 있어요.
+              {/* 서브 카피 */}
+              <p className="mt-4 text-[16px] font-semibold leading-relaxed text-slate-600 lg:mt-5 lg:text-[18px]">
+                카톡방에 흩어진 맛집 추천을
+                <br />
+                먹킷맵에 모아보세요.
               </p>
+
+              {/* 설명 */}
+              <p className="mt-3 max-w-[280px] text-[14px] leading-relaxed text-slate-400 lg:max-w-none lg:text-[15px]">
+                색상 마커와 태그 필터로
+                {" "}친구 추천 맛집을 쉽게 정리해요.
+              </p>
+
+              {/* CTA 버튼 */}
+              <div className="mt-8 flex w-full max-w-[360px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 py-[14px] text-[15px] font-bold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-600 active:scale-[0.98] lg:w-auto lg:py-[15px] lg:text-[15px]"
+                  onClick={handleOpenCreate}
+                  type="button"
+                >
+                  <Plus size={18} />
+                  새 먹킷맵 만들기
+                </button>
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-[14px] text-[15px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] lg:w-auto lg:py-[15px]"
+                  onClick={() => setJoinOpen(true)}
+                  type="button"
+                >
+                  <Link2 size={15} />
+                  초대 링크로 참여하기
+                </button>
+              </div>
+            </div>
+
+            {/* ── 오른쪽: 서비스 미리보기 (데스크톱만) ── */}
+            <div className="mt-14 hidden lg:mt-0 lg:block">
+              <MockupPreview />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════
+          내 먹킷맵 섹션
+      ══════════════════════════════════════════ */}
+      <section className="px-5 pb-20 lg:px-10">
+        <div className="mx-auto max-w-[1200px]">
+
+          {/* 로그아웃 상태 */}
+          {loggedOut && (
+            <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm lg:px-6 lg:py-6">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <LogIn size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-bold text-slate-800">내 먹킷맵 보기</p>
+                <p className="mt-0.5 text-[13px] text-slate-500">
+                  로그인하면 최근 만든 먹킷맵을 볼 수 있어요.
+                </p>
+              </div>
               <button
-                className="btn-primary mt-5 w-full justify-center"
+                className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-emerald-600"
                 onClick={() => router.push(getAuthUrl("/"))}
                 type="button"
               >
-                <LogIn size={16} />
-                로그인하기
+                <LogIn size={14} />
+                로그인
               </button>
             </div>
-          ) : (
+          )}
+
+          {/* 로그인 상태 */}
+          {!loggedOut && (
             <>
               {isLoading && <ProjectSkeleton />}
 
               {isError && (
-                <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-3.5">
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3.5">
                   <p className="flex-1 text-[13px] font-semibold text-red-700">
                     {loadErrorMsg || "프로젝트를 불러오지 못했어요."}
                   </p>
@@ -341,17 +465,21 @@ function HomeContent() {
               )}
 
               {isEmpty && (
-                <div className="flex flex-col items-center rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
-                  <Sparkles size={34} className="text-emerald-500" />
-                  <p className="mt-4 text-[15px] font-bold text-slate-800">
-                    아직 만든 먹킷맵이 없어요.
-                  </p>
-                  <p className="mt-1 text-[13px] text-slate-500">
-                    첫 먹킷맵을 만들어볼까요?
-                  </p>
-                  <button className="btn-primary mt-5" onClick={handleOpenCreate}>
-                    <Plus size={15} />
-                    새 먹킷맵 만들기
+                <div className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
+                    <MapPin size={18} className="text-slate-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-bold text-slate-800">아직 만든 먹킷맵이 없어요.</p>
+                    <p className="mt-0.5 text-[13px] text-slate-500">첫 먹킷맵을 만들어볼까요?</p>
+                  </div>
+                  <button
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-[13px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                    onClick={handleOpenCreate}
+                    type="button"
+                  >
+                    <Plus size={14} />
+                    만들기
                   </button>
                 </div>
               )}
@@ -368,14 +496,13 @@ function HomeContent() {
               )}
             </>
           )}
-        </section>
-      </div>
+        </div>
+      </section>
 
-      <BottomSheet
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        maxWidth={560}
-      >
+      {/* ══════════════════════════════════════════
+          Sheets
+      ══════════════════════════════════════════ */}
+      <BottomSheet open={createOpen} onClose={() => setCreateOpen(false)} maxWidth={560}>
         <div className="space-y-5">
           <div>
             <h2 className="title">새 먹킷맵</h2>
@@ -389,11 +516,7 @@ function HomeContent() {
 
       <BottomSheet
         open={joinOpen}
-        onClose={() => {
-          setJoinOpen(false);
-          setJoinUrl("");
-          setJoinError("");
-        }}
+        onClose={() => { setJoinOpen(false); setJoinUrl(""); setJoinError(""); }}
         maxWidth={480}
       >
         <div className="space-y-5">
@@ -409,10 +532,7 @@ function HomeContent() {
               className="w-full rounded-xl border border-[var(--border)] bg-slate-50 px-4 py-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
               placeholder="https://mukkit-map.vercel.app/invite/초대코드"
               value={joinUrl}
-              onChange={(e) => {
-                setJoinUrl(e.target.value);
-                setJoinError("");
-              }}
+              onChange={(e) => { setJoinUrl(e.target.value); setJoinError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleJoin()}
             />
             {joinError && (
