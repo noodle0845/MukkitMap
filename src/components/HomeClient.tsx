@@ -15,6 +15,7 @@ import {
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { ProjectForm } from "@/components/ProjectForm";
 import { ProjectList } from "@/components/ProjectList";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -404,6 +405,7 @@ function HomeContent() {
                   <Link2 size={15} />
                   초대 링크로 입장하기
                 </button>
+                <PwaInstallPrompt />
               </div>
             </div>
 

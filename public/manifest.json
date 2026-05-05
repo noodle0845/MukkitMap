@@ -1,0 +1,48 @@
+{
+  "name": "먹킷맵 - Mukkit Map",
+  "short_name": "먹킷맵",
+  "description": "친구들과 비공개 맛집 지도를 함께 만드는 서비스",
+  "lang": "ko-KR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#10b981",
+  "background_color": "#f8fafc",
+  "categories": ["food", "lifestyle", "navigation"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "내 먹킷맵 보기",
+      "short_name": "내 지도",
+      "description": "최근 먹킷맵 목록으로 이동",
+      "url": "/projects",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
