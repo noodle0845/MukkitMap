@@ -322,12 +322,12 @@ function HomeContent() {
           헤더
       ══════════════════════════════════════════ */}
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-4 lg:px-10 lg:py-5">
-          <GhostlyLogo className="w-[108px] lg:w-[136px]" />
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3 sm:px-5 sm:py-4 lg:px-10 lg:py-5">
+          <GhostlyLogo className="w-[96px] sm:w-[108px] lg:w-[136px]" />
           {authConfigured ? (
             user ? (
               <button
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 lg:h-10 lg:px-4 lg:text-[14px]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 sm:h-9 sm:px-3.5 sm:text-[13px] lg:h-10 lg:px-4 lg:text-[14px]"
                 onClick={signOut}
                 type="button"
               >
@@ -336,7 +336,7 @@ function HomeContent() {
               </button>
             ) : (
               <button
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-[13px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 lg:h-10 lg:px-4 lg:text-[14px]"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-semibold text-slate-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 sm:h-9 sm:px-3.5 sm:text-[13px] lg:h-10 lg:px-4 lg:text-[14px]"
                 onClick={() => router.push(getAuthUrl("/"))}
                 type="button"
               >
@@ -351,7 +351,7 @@ function HomeContent() {
       {/* ══════════════════════════════════════════
           Hero
       ══════════════════════════════════════════ */}
-      <section className="px-6 pt-10 pb-12 lg:px-10 lg:pt-20 lg:pb-24">
+      <section className="px-5 pt-8 pb-10 sm:px-6 sm:pt-10 sm:pb-12 lg:px-10 lg:pt-20 lg:pb-24">
         <div className="mx-auto max-w-[1200px]">
           {/* 2단 그리드: 데스크톱만 */}
           <div className="lg:grid lg:grid-cols-2 lg:items-center lg:gap-20">
@@ -366,8 +366,7 @@ function HomeContent() {
 
               {/* 메인 타이틀 */}
               <h1
-                className="mt-5 font-black tracking-[-0.02em] text-slate-900 lg:mt-6 lg:text-[60px] lg:leading-[1.07]"
-                style={{ fontSize: "clamp(42px, 11vw, 52px)", lineHeight: 1.1 }}
+                className="mt-5 text-[32px] font-black leading-[1.16] tracking-normal text-slate-900 [word-break:keep-all] sm:text-[44px] sm:leading-[1.1] lg:mt-6 lg:text-[60px] lg:leading-[1.07]"
               >
                 친구가 추천한 맛집만
                 <br />
@@ -375,23 +374,22 @@ function HomeContent() {
               </h1>
 
               {/* 서브 카피 */}
-              <p className="mt-4 text-[15px] font-semibold leading-relaxed text-slate-600 lg:mt-5 lg:text-[18px]">
+              <p className="mt-4 max-w-[34rem] text-[14px] font-semibold leading-[1.75] text-slate-600 [word-break:keep-all] sm:text-[15px] lg:mt-5 lg:text-[18px]">
                 카톡방에 흩어진 맛집 링크를 프로젝트별로 정리하고,
                 <br className="hidden lg:block" />
                 초대받은 친구들만 함께 볼 수 있는 비공개 맛집 지도를 만드세요.
               </p>
 
               {/* 설명 */}
-              <p className="mt-3 text-[14px] leading-relaxed text-slate-400 lg:text-[15px]">
+              <p className="mt-3 max-w-[34rem] text-[13px] leading-[1.75] text-slate-400 [word-break:keep-all] sm:text-[14px] lg:text-[15px]">
                 색상 마커와 태그로
                 {" "}친구 맛집을 쉽게 모아봐요.
               </p>
 
               {/* CTA 버튼 */}
-              <div className="mt-8 flex w-full max-w-[420px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
+              <div className="mt-7 flex w-full max-w-[420px] flex-col gap-3 lg:max-w-none lg:flex-row lg:gap-3.5">
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-bold text-white shadow-md shadow-emerald-200/70 transition hover:bg-emerald-600 active:scale-[0.98] lg:w-auto lg:text-[15px]"
-                  style={{ height: "56px" }}
+                  className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-6 text-[15px] font-bold text-white shadow-md shadow-emerald-200/70 transition hover:bg-emerald-600 active:scale-[0.98] lg:h-[56px] lg:w-auto lg:text-[15px]"
                   onClick={handleOpenCreate}
                   type="button"
                 >
@@ -399,8 +397,7 @@ function HomeContent() {
                   친구들과 지도 만들기
                 </button>
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] lg:w-auto"
-                  style={{ height: "56px" }}
+                  className="flex h-[54px] w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-600 transition hover:border-slate-400 hover:bg-slate-50 active:scale-[0.98] lg:h-[56px] lg:w-auto"
                   onClick={() => setJoinOpen(true)}
                   type="button"
                 >
