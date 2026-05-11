@@ -17,6 +17,7 @@ type NaverMapViewProps = {
   onSelectPlace: (placeId: string) => void;
   onOpenDetail?: (placeId: string) => void;
   onPickLocation?: (location: PickedLocation) => void;
+  mukkitPickPlaceIds?: string[];
 };
 
 type NearbyPlaceCandidate = {
@@ -104,9 +105,31 @@ function categoryEmoji(category: string): string {
   return map[category] ?? "📌";
 }
 
-function markerContent(place: Place, color: string, selected: boolean, showLabel: boolean) {
+function mukkitPickBadge() {
+  return `<span style="
+    position:absolute;
+    right:-7px;
+    top:-7px;
+    display:flex;
+    width:18px;
+    height:18px;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    background:#f59e0b;
+    color:white;
+    border:2px solid white;
+    font-size:11px;
+    font-weight:900;
+    box-shadow:0 6px 14px rgba(245,158,11,0.35);
+    pointer-events:none;
+  ">★</span>`;
+}
+
+function markerContent(place: Place, color: string, selected: boolean, showLabel: boolean, highlighted = false) {
   const sc = safeMarkerColor(color);
   const emoji = categoryEmoji(place.category);
+  const badge = highlighted ? mukkitPickBadge() : "";
 
   if (selected) {
     // 선택 상태: 큰 핀 + 글로우 + 이름 라벨 항상 표시
@@ -133,6 +156,7 @@ function markerContent(place: Place, color: string, selected: boolean, showLabel
           display:flex;align-items:center;justify-content:center;
           font-size:13px;line-height:1;pointer-events:none;
         ">${emoji}</span>
+        ${badge}
       </div>
       ${label}
     </div>`;
@@ -163,12 +187,13 @@ function markerContent(place: Place, color: string, selected: boolean, showLabel
         display:flex;align-items:center;justify-content:center;
         font-size:10px;line-height:1;pointer-events:none;
       ">${emoji}</span>
+      ${badge}
     </div>
     ${label}
   </div>`;
 }
 
-function richInfoContent(place: Place, member: Member | undefined) {
+function richInfoContent(place: Place, member: Member | undefined, highlighted = false) {
   const memberColor = safeMarkerColor(member?.markerColor);
   const memberName = escapeHtml(member?.nickname ?? "알 수 없음");
   const emoji = categoryEmoji(place.category);
@@ -192,6 +217,7 @@ function richInfoContent(place: Place, member: Member | undefined) {
       <span>${emoji} ${escapeHtml(place.category)}</span>
     </div>
     <p style="margin:6px 0 0;font-size:16px;font-weight:800;color:#0f172a;line-height:1.3;">${escapeHtml(place.name)}</p>
+    ${highlighted ? `<span style="display:inline-flex;align-items:center;margin-top:6px;padding:3px 8px;border-radius:999px;background:#fef3c7;color:#b45309;font-size:11px;font-weight:800;">★ 먹킷각</span>` : ""}
     <p style="margin:4px 0 0;font-size:12px;color:#64748b;line-height:1.5;">${escapeHtml(place.address)}</p>
     ${memoHtml}
     ${tagsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${tagsHtml}</div>` : ""}
@@ -475,7 +501,8 @@ export function NaverMapView({
   selectedPlaceId,
   onSelectPlace,
   onOpenDetail,
-  onPickLocation
+  onPickLocation,
+  mukkitPickPlaceIds = []
 }: NaverMapViewProps) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
   const mapElementRef = useRef<HTMLDivElement | null>(null);
@@ -493,6 +520,10 @@ export function NaverMapView({
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlaceCandidate[]>([]);
   const [isLoadingNearbyPlaces, setIsLoadingNearbyPlaces] = useState(false);
   const [nearbyPlacesMessage, setNearbyPlacesMessage] = useState("");
+  const mukkitPickSet = useMemo(
+    () => new Set(mukkitPickPlaceIds),
+    [mukkitPickPlaceIds]
+  );
 
   const dismissPickedCandidate = useCallback(() => {
     setPickedCandidate(null);
@@ -524,10 +555,11 @@ export function NaverMapView({
 
         return {
           member,
-          place
+          place,
+          isMukkitPick: mukkitPickSet.has(place.id)
         };
       }),
-    [members, places]
+    [members, mukkitPickSet, places]
   );
 
   useEffect(() => {
@@ -584,7 +616,7 @@ export function NaverMapView({
     markersRef.current = [];
     infoWindowRef.current?.close();
 
-    markerData.forEach(({ place, member }) => {
+    markerData.forEach(({ place, member, isMukkitPick }) => {
       const selected = selectedPlaceId === place.id;
       const marker = new maps.Marker({
         icon: {
@@ -594,7 +626,8 @@ export function NaverMapView({
             place,
             member?.markerColor ?? "#64748b",
             selected,
-            places.length <= 12
+            places.length <= 12,
+            isMukkitPick
           )
         },
         map,
@@ -606,7 +639,7 @@ export function NaverMapView({
         onSelectPlace(place.id);
         infoWindowRef.current?.close();
         infoWindowRef.current = new maps.InfoWindow({
-          content: richInfoContent(place, member),
+          content: richInfoContent(place, member, isMukkitPick),
           borderWidth: 0,
           backgroundColor: "transparent",
           disableAnchor: false,

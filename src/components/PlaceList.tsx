@@ -1,8 +1,17 @@
 "use client";
 
-import { ExternalLink, Edit3, MapPin, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  Edit3,
+  ExternalLink,
+  Heart,
+  MapPin,
+  Sparkles,
+  Star,
+  Trash2
+} from "lucide-react";
 import { MoreMenu } from "@/components/ui/MoreMenu";
-import type { Member, Place } from "@/lib/types";
+import type { Member, Place, PlaceSocialSummary } from "@/lib/types";
 import { getMemberColor, getMemberForPlace } from "@/lib/utils";
 
 type PlaceListProps = {
@@ -13,6 +22,7 @@ type PlaceListProps = {
   onEdit?: (place: Place) => void;
   onDelete?: (place: Place) => void;
   totalCount?: number;
+  socialByPlace?: Record<string, PlaceSocialSummary>;
 };
 
 export function PlaceList({
@@ -22,7 +32,8 @@ export function PlaceList({
   onSelect,
   onEdit,
   onDelete,
-  totalCount
+  totalCount,
+  socialByPlace
 }: PlaceListProps) {
   const empty = places.length === 0;
   const showCount = totalCount ?? places.length;
@@ -49,7 +60,7 @@ export function PlaceList({
             조건에 맞는 장소가 없어요
           </p>
           <p className="text-xs leading-5 text-slate-500">
-            필터를 조정하거나 우하단의 + 장소 추가를 눌러보세요.
+            필터를 조정하거나 하단의 + 장소 추가를 눌러보세요.
           </p>
         </div>
       ) : (
@@ -57,6 +68,7 @@ export function PlaceList({
           {places.map((place) => {
             const member = getMemberForPlace(place, members);
             const isSelected = selectedPlaceId === place.id;
+            const social = socialByPlace?.[place.id];
 
             return (
               <li
@@ -79,7 +91,7 @@ export function PlaceList({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                      <span>{member?.nickname ?? "알 수 없음"}</span>
+                      <span>{member?.nickname ?? "추천자 없음"}</span>
                       <span aria-hidden>·</span>
                       <span>{place.category}</span>
                     </div>
@@ -94,6 +106,30 @@ export function PlaceList({
                         {place.comment}
                       </p>
                     ) : null}
+
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {social?.isMukkitPick ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">
+                          <Sparkles size={11} />
+                          먹킷각
+                        </span>
+                      ) : null}
+                      {social?.visitedByMe ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                          <CheckCircle2 size={11} />
+                          도장 완료
+                        </span>
+                      ) : null}
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">
+                        <Heart size={11} />
+                        {social?.likeCount ?? 0}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-500">
+                        <Star size={11} />
+                        {social?.wantCount ?? 0}
+                      </span>
+                    </div>
+
                     {place.tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {place.tags.slice(0, 3).map((tag) => (

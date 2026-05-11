@@ -84,3 +84,31 @@ export function createNaverCoordinateUrl(lat: number, lng: number, address?: str
 
   return `https://map.naver.com/p?c=${lng},${lat},15,0,0,0,dh`;
 }
+
+export function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+) {
+  const earthRadiusMeters = 6371000;
+  const toRadians = (degree: number) => (degree * Math.PI) / 180;
+  const deltaLat = toRadians(lat2 - lat1);
+  const deltaLon = toRadians(lon2 - lon1);
+  const radLat1 = toRadians(lat1);
+  const radLat2 = toRadians(lat2);
+
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(deltaLon / 2) ** 2;
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+export function isMukkitPick(likeCount: number, groupMemberCount?: number | null) {
+  if (groupMemberCount && groupMemberCount > 0) {
+    return likeCount >= Math.ceil(groupMemberCount / 2);
+  }
+
+  return likeCount >= 3;
+}

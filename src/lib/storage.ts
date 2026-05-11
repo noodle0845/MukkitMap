@@ -3,6 +3,11 @@ import type {
   MemberCreateInput,
   Place,
   PlaceCreateInput,
+  PlaceReaction,
+  PlaceReactionType,
+  PlaceReview,
+  PlaceSocialData,
+  PlaceVisit,
   Project,
   ProjectCreateInput
 } from "@/lib/types";
@@ -14,12 +19,18 @@ export type MukkitStore = {
   projects: Project[];
   members: Member[];
   places: Place[];
+  placeReactions: PlaceReaction[];
+  placeVisits: PlaceVisit[];
+  placeReviews: PlaceReview[];
 };
 
 const EMPTY_STORE: MukkitStore = {
   projects: [],
   members: [],
-  places: []
+  places: [],
+  placeReactions: [],
+  placeVisits: [],
+  placeReviews: []
 };
 
 function canUseStorage() {
@@ -36,7 +47,10 @@ function normalizeStore(value: unknown): MukkitStore {
   return {
     projects: Array.isArray(draft.projects) ? draft.projects : [],
     members: Array.isArray(draft.members) ? draft.members : [],
-    places: Array.isArray(draft.places) ? draft.places : []
+    places: Array.isArray(draft.places) ? draft.places : [],
+    placeReactions: Array.isArray(draft.placeReactions) ? draft.placeReactions : [],
+    placeVisits: Array.isArray(draft.placeVisits) ? draft.placeVisits : [],
+    placeReviews: Array.isArray(draft.placeReviews) ? draft.placeReviews : []
   };
 }
 
@@ -84,6 +98,15 @@ export function getPlacesByProject(projectId: string) {
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 }
 
+function removeSocialRows(store: MukkitStore, placeIds: Set<string>) {
+  return {
+    ...store,
+    placeReactions: store.placeReactions.filter((item) => !placeIds.has(item.placeId)),
+    placeVisits: store.placeVisits.filter((item) => !placeIds.has(item.placeId)),
+    placeReviews: store.placeReviews.filter((item) => !placeIds.has(item.placeId))
+  };
+}
+
 export function createProject(input: ProjectCreateInput) {
   const store = getStore();
   const project: Project = {
@@ -104,11 +127,16 @@ export function createProject(input: ProjectCreateInput) {
 
 export function deleteProject(projectId: string) {
   const store = getStore();
+  const placeIds = new Set(
+    store.places.filter((place) => place.projectId === projectId).map((place) => place.id)
+  );
+  const nextStore = removeSocialRows(store, placeIds);
 
   saveStore({
-    projects: store.projects.filter((project) => project.id !== projectId),
-    members: store.members.filter((member) => member.projectId !== projectId),
-    places: store.places.filter((place) => place.projectId !== projectId)
+    ...nextStore,
+    projects: nextStore.projects.filter((project) => project.id !== projectId),
+    members: nextStore.members.filter((member) => member.projectId !== projectId),
+    places: nextStore.places.filter((place) => place.projectId !== projectId)
   });
 }
 
@@ -153,11 +181,15 @@ export function createMember(projectId: string, input: MemberCreateInput) {
 
 export function deleteMember(memberId: string) {
   const store = getStore();
+  const placeIds = new Set(
+    store.places.filter((place) => place.memberId === memberId).map((place) => place.id)
+  );
+  const nextStore = removeSocialRows(store, placeIds);
 
   saveStore({
-    ...store,
-    members: store.members.filter((member) => member.id !== memberId),
-    places: store.places.filter((place) => place.memberId !== memberId)
+    ...nextStore,
+    members: nextStore.members.filter((member) => member.id !== memberId),
+    places: nextStore.places.filter((place) => place.memberId !== memberId)
   });
 }
 
@@ -244,9 +276,117 @@ export function updatePlace(placeId: string, input: PlaceCreateInput) {
 
 export function deletePlace(placeId: string) {
   const store = getStore();
+  const nextStore = removeSocialRows(store, new Set([placeId]));
+
+  saveStore({
+    ...nextStore,
+    places: nextStore.places.filter((place) => place.id !== placeId)
+  });
+}
+
+export function getPlaceSocialData(projectId: string): PlaceSocialData {
+  const store = getStore();
+  const placeIds = new Set(
+    store.places.filter((place) => place.projectId === projectId).map((place) => place.id)
+  );
+
+  return {
+    reactions: store.placeReactions.filter((item) => placeIds.has(item.placeId)),
+    visits: store.placeVisits.filter((item) => placeIds.has(item.placeId)),
+    reviews: store.placeReviews
+      .filter((item) => placeIds.has(item.placeId))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+  };
+}
+
+export function togglePlaceReaction(
+  placeId: string,
+  reactionType: PlaceReactionType,
+  userId = "local-user"
+) {
+  const store = getStore();
+  const existing = store.placeReactions.find(
+    (item) =>
+      item.placeId === placeId &&
+      item.userId === userId &&
+      item.reactionType === reactionType
+  );
+
+  const placeReactions = existing
+    ? store.placeReactions.filter((item) => item.id !== existing.id)
+    : [
+        ...store.placeReactions,
+        {
+          id: createId("reaction"),
+          placeId,
+          userId,
+          reactionType,
+          createdAt: nowIso()
+        }
+      ];
+
+  saveStore({ ...store, placeReactions });
+}
+
+export function verifyPlaceVisit(
+  placeId: string,
+  userId = "local-user",
+  latitude: number | null = null,
+  longitude: number | null = null
+) {
+  const store = getStore();
+  const now = nowIso();
+  const existing = store.placeVisits.find(
+    (item) => item.placeId === placeId && item.userId === userId
+  );
+
+  const visit: PlaceVisit = {
+    id: existing?.id ?? createId("visit"),
+    placeId,
+    userId,
+    verified: true,
+    verifiedAt: now,
+    latitude,
+    longitude,
+    createdAt: existing?.createdAt ?? now
+  };
+
+  const placeVisits = existing
+    ? store.placeVisits.map((item) => (item.id === existing.id ? visit : item))
+    : [...store.placeVisits, visit];
+
+  saveStore({ ...store, placeVisits });
+  return visit;
+}
+
+export function createPlaceReview(placeId: string, content: string, userId = "local-user") {
+  const store = getStore();
+  const trimmed = content.trim();
+  if (!trimmed) {
+    throw new Error("리뷰 내용을 입력해주세요.");
+  }
+
+  const hasVerifiedVisit = store.placeVisits.some(
+    (item) => item.placeId === placeId && item.userId === userId && item.verified
+  );
+
+  if (!hasVerifiedVisit) {
+    throw new Error("방문 인증 후 리뷰를 남길 수 있어요.");
+  }
+
+  const review: PlaceReview = {
+    id: createId("review"),
+    placeId,
+    userId,
+    content: trimmed,
+    isVerifiedVisit: true,
+    createdAt: nowIso()
+  };
 
   saveStore({
     ...store,
-    places: store.places.filter((place) => place.id !== placeId)
+    placeReviews: [review, ...store.placeReviews]
   });
+
+  return review;
 }

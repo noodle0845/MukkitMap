@@ -13,6 +13,11 @@ import type {
   MemberRole,
   Place,
   PlaceCreateInput,
+  PlaceReaction,
+  PlaceReactionType,
+  PlaceReview,
+  PlaceSocialData,
+  PlaceVisit,
   Project,
   ProjectCounts,
   ProjectCreateInput
@@ -54,6 +59,34 @@ type PlaceRow = {
   comment: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type PlaceReactionRow = {
+  id: string;
+  place_id: string;
+  user_id: string;
+  reaction_type: PlaceReactionType;
+  created_at: string;
+};
+
+type PlaceVisitRow = {
+  id: string;
+  place_id: string;
+  user_id: string;
+  verified: boolean;
+  verified_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+};
+
+type PlaceReviewRow = {
+  id: string;
+  place_id: string;
+  user_id: string;
+  content: string;
+  is_verified_visit: boolean;
+  created_at: string;
 };
 
 // ── Mapper ────────────────────────────────────────────────────────
@@ -104,6 +137,40 @@ function mapPlace(row: PlaceRow): Place {
   };
 }
 
+function mapPlaceReaction(row: PlaceReactionRow): PlaceReaction {
+  return {
+    id: row.id,
+    placeId: row.place_id,
+    userId: row.user_id,
+    reactionType: row.reaction_type,
+    createdAt: row.created_at
+  };
+}
+
+function mapPlaceVisit(row: PlaceVisitRow): PlaceVisit {
+  return {
+    id: row.id,
+    placeId: row.place_id,
+    userId: row.user_id,
+    verified: row.verified,
+    verifiedAt: row.verified_at,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    createdAt: row.created_at
+  };
+}
+
+function mapPlaceReview(row: PlaceReviewRow): PlaceReview {
+  return {
+    id: row.id,
+    placeId: row.place_id,
+    userId: row.user_id,
+    content: row.content,
+    isVerifiedVisit: row.is_verified_visit,
+    createdAt: row.created_at
+  };
+}
+
 // ── 헬퍼 ──────────────────────────────────────────────────────────
 
 function supabase() {
@@ -112,6 +179,17 @@ function supabase() {
 
 function throwOnError(error: { message?: string } | null, fallback = "알 수 없는 오류") {
   if (error) throw new Error(error.message ?? fallback);
+}
+
+async function getRequiredUserId() {
+  const {
+    data: { user },
+    error
+  } = await supabase().auth.getUser();
+
+  throwOnError(error);
+  if (!user) throw new Error("로그인이 필요해요.");
+  return user.id;
 }
 
 // ── Projects ──────────────────────────────────────────────────────
@@ -478,4 +556,143 @@ export async function deletePlace(placeId: string): Promise<void> {
 
   const { error } = await supabase().from("places").delete().eq("id", placeId);
   throwOnError(error);
+}
+
+export async function getPlaceSocialData(projectId: string): Promise<PlaceSocialData> {
+  if (!isSupabaseConfigured()) return localStore.getPlaceSocialData(projectId);
+
+  const { data: placeRows, error: placeError } = await supabase()
+    .from("places")
+    .select("id")
+    .eq("project_id", projectId);
+
+  throwOnError(placeError);
+
+  const placeIds = ((placeRows as Array<{ id: string }> | null) ?? []).map((row) => row.id);
+  if (placeIds.length === 0) {
+    return {
+      reactions: [],
+      visits: [],
+      reviews: []
+    };
+  }
+
+  const [
+    { data: reactionRows, error: reactionError },
+    { data: visitRows, error: visitError },
+    { data: reviewRows, error: reviewError }
+  ] = await Promise.all([
+    supabase().from("place_reactions").select("*").in("place_id", placeIds),
+    supabase().from("place_visits").select("*").in("place_id", placeIds),
+    supabase()
+      .from("place_reviews")
+      .select("*")
+      .in("place_id", placeIds)
+      .order("created_at", { ascending: false })
+  ]);
+
+  throwOnError(reactionError);
+  throwOnError(visitError);
+  throwOnError(reviewError);
+
+  return {
+    reactions: ((reactionRows as PlaceReactionRow[] | null) ?? []).map(mapPlaceReaction),
+    visits: ((visitRows as PlaceVisitRow[] | null) ?? []).map(mapPlaceVisit),
+    reviews: ((reviewRows as PlaceReviewRow[] | null) ?? []).map(mapPlaceReview)
+  };
+}
+
+export async function togglePlaceReaction(
+  placeId: string,
+  reactionType: PlaceReactionType,
+  userId = "local-user"
+): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    localStore.togglePlaceReaction(placeId, reactionType, userId);
+    return;
+  }
+
+  const currentUserId = await getRequiredUserId();
+  const { data: existingRows, error: selectError } = await supabase()
+    .from("place_reactions")
+    .select("id")
+    .eq("place_id", placeId)
+    .eq("user_id", currentUserId)
+    .eq("reaction_type", reactionType)
+    .limit(1);
+
+  throwOnError(selectError);
+
+  const existing = ((existingRows as Array<{ id: string }> | null) ?? [])[0];
+  if (existing) {
+    const { error } = await supabase().from("place_reactions").delete().eq("id", existing.id);
+    throwOnError(error);
+    return;
+  }
+
+  const { error } = await supabase().from("place_reactions").insert({
+    place_id: placeId,
+    user_id: currentUserId,
+    reaction_type: reactionType
+  });
+
+  throwOnError(error);
+}
+
+export async function verifyPlaceVisit(
+  placeId: string,
+  coords: { latitude: number; longitude: number },
+  userId = "local-user"
+): Promise<PlaceVisit> {
+  if (!isSupabaseConfigured()) {
+    return localStore.verifyPlaceVisit(placeId, userId, coords.latitude, coords.longitude);
+  }
+
+  const currentUserId = await getRequiredUserId();
+  const { data, error } = await supabase()
+    .from("place_visits")
+    .upsert(
+      {
+        place_id: placeId,
+        user_id: currentUserId,
+        verified: true,
+        verified_at: nowIso(),
+        latitude: coords.latitude,
+        longitude: coords.longitude
+      },
+      { onConflict: "place_id,user_id" }
+    )
+    .select()
+    .single();
+
+  throwOnError(error);
+  return mapPlaceVisit(data as PlaceVisitRow);
+}
+
+export async function createPlaceReview(
+  placeId: string,
+  content: string,
+  userId = "local-user"
+): Promise<PlaceReview> {
+  const trimmed = content.trim();
+  if (!trimmed) throw new Error("리뷰 내용을 입력해주세요.");
+
+  if (!isSupabaseConfigured()) {
+    return localStore.createPlaceReview(placeId, trimmed, userId);
+  }
+
+  const currentUserId = await getRequiredUserId();
+  const { data, error } = await supabase()
+    .from("place_reviews")
+    .insert({
+      place_id: placeId,
+      user_id: currentUserId,
+      content: trimmed,
+      is_verified_visit: true
+    })
+    .select()
+    .single();
+
+  throwOnError(error);
+  return mapPlaceReview(data as PlaceReviewRow);
 }

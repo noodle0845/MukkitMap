@@ -35,23 +35,38 @@ import type {
   PickedLocation,
   Place,
   PlaceCreateInput,
+  PlaceReaction,
+  PlaceReactionType,
+  PlaceReview,
+  PlaceSocialSummary,
+  PlaceVisit,
   Project
 } from "@/lib/types";
 import {
   createMember,
+  createPlaceReview,
   createPlace,
   deleteMember,
   deletePlace,
   deleteProject,
+  getPlaceSocialData,
   getProjectBundle,
   regenerateInviteCode,
+  togglePlaceReaction,
   updateMember,
-  updatePlace
+  updatePlace,
+  verifyPlaceVisit
 } from "@/lib/supabaseStorage";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
-import { getMemberForPlace, uniqueTags } from "@/lib/utils";
+import {
+  calculateDistanceMeters,
+  getMemberForPlace,
+  isMukkitPick,
+  uniqueTags
+} from "@/lib/utils";
 
 const LOAD_TIMEOUT_MS = 5000;
+const VISIT_RADIUS_METERS = 100;
 
 const LeafletMapView = dynamic(
   () => import("@/components/MapView").then((m) => m.MapView),
@@ -86,6 +101,28 @@ const DEFAULT_FILTERS: FilterState = {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message.slice(0, 120) : "잠시 후 다시 시도해주세요.";
+}
+
+function getCurrentPosition(options?: PositionOptions) {
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(new Error("현재 브라우저에서 위치 기능을 사용할 수 없어요."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+function getGeolocationErrorMessage(error: unknown) {
+  if (typeof error === "object" && error && "code" in error) {
+    const code = Number((error as GeolocationPositionError).code);
+    if (code === 1) return "위치 권한을 허용해야 방문 인증을 할 수 있어요.";
+    if (code === 2) return "현재 위치를 가져오지 못했어요. GPS와 네트워크 상태를 확인해주세요.";
+    if (code === 3) return "위치 확인 시간이 초과됐어요. 잠시 후 다시 시도해주세요.";
+  }
+
+  return getErrorMessage(error);
 }
 
 type LoadStatus = "loading" | "loaded" | "timeout" | "network-error" | "access-denied";
@@ -359,6 +396,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [places, setPlaces] = useState<Place[]>([]);
+  const [placeReactions, setPlaceReactions] = useState<PlaceReaction[]>([]);
+  const [placeVisits, setPlaceVisits] = useState<PlaceVisit[]>([]);
+  const [placeReviews, setPlaceReviews] = useState<PlaceReview[]>([]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
@@ -367,6 +407,9 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
+  const [socialLoadingPlaceId, setSocialLoadingPlaceId] = useState<string | null>(null);
+  const [verifyingPlaceId, setVerifyingPlaceId] = useState<string | null>(null);
+  const [reviewSubmittingPlaceId, setReviewSubmittingPlaceId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -382,11 +425,11 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
 
   // 권한 헬퍼
   const isOwner = myMember?.role === "owner";
-  const canEdit = !isSupabaseConfigured() || !!myMember; // 멤버라면 누구나 편집 가능
-  // 초대 링크 공유: 멤버라면 누구나 가능
+  const isEditor = myMember?.role === "editor";
+  const roleCanEdit = !isSupabaseConfigured() || isOwner || isEditor;
   const canInvite = !isSupabaseConfigured() || !!myMember;
-  // 참여자 관리(추가·수정·삭제): 멤버라면 누구나 가능
-  const canManageMembers = !isSupabaseConfigured() || !!myMember;
+  const canManageMembers = !isSupabaseConfigured() || isOwner;
+  const canEdit = roleCanEdit;
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
   const refreshProject = useCallback(async () => {
@@ -408,6 +451,24 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
       setMembers(bundle.members);
       setPlaces(bundle.places);
       setInviteCode(bundle.project?.inviteCode ?? null);
+      if (bundle.project) {
+        try {
+          const social = await getPlaceSocialData(projectId);
+          if (!activeRef.current) return;
+          setPlaceReactions(social.reactions);
+          setPlaceVisits(social.visits);
+          setPlaceReviews(social.reviews);
+        } catch (socialError) {
+          console.error("[mukkit social]", socialError);
+          setPlaceReactions([]);
+          setPlaceVisits([]);
+          setPlaceReviews([]);
+        }
+      } else {
+        setPlaceReactions([]);
+        setPlaceVisits([]);
+        setPlaceReviews([]);
+      }
       setLoadStatus("loaded");
     } catch (error) {
       clearTimeout(tidRef.current!);
@@ -468,6 +529,44 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   );
 
   const tagOptions = useMemo(() => uniqueTags(places), [places]);
+  const currentUserId = user?.id ?? "local-user";
+
+  const socialByPlace = useMemo<Record<string, PlaceSocialSummary>>(() => {
+    return Object.fromEntries(
+      places.map((place) => {
+        const reactions = placeReactions.filter((reaction) => reaction.placeId === place.id);
+        const visits = placeVisits.filter((visit) => visit.placeId === place.id && visit.verified);
+        const reviews = placeReviews.filter((review) => review.placeId === place.id);
+        const likeCount = reactions.filter((reaction) => reaction.reactionType === "like").length;
+        const wantCount = reactions.filter((reaction) => reaction.reactionType === "want").length;
+
+        return [
+          place.id,
+          {
+            likeCount,
+            wantCount,
+            likedByMe: reactions.some(
+              (reaction) => reaction.reactionType === "like" && reaction.userId === currentUserId
+            ),
+            wantedByMe: reactions.some(
+              (reaction) => reaction.reactionType === "want" && reaction.userId === currentUserId
+            ),
+            visitedByMe: visits.some((visit) => visit.userId === currentUserId),
+            isMukkitPick: isMukkitPick(likeCount, members.length || null),
+            reviews
+          }
+        ];
+      })
+    );
+  }, [currentUserId, members.length, placeReactions, placeReviews, placeVisits, places]);
+
+  const mukkitPickPlaceIds = useMemo(
+    () =>
+      Object.entries(socialByPlace)
+        .filter(([, social]) => social.isMukkitPick)
+        .map(([placeId]) => placeId),
+    [socialByPlace]
+  );
 
   const editingPlace =
     sheet.kind === "place-edit"
@@ -621,6 +720,141 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
   }
 
   // 초대 링크 생성/재생성
+  async function reloadSocialOnly() {
+    try {
+      const social = await getPlaceSocialData(projectId);
+      setPlaceReactions(social.reactions);
+      setPlaceVisits(social.visits);
+      setPlaceReviews(social.reviews);
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "반응 정보를 불러오지 못했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    }
+  }
+
+  function canUseSocialActions() {
+    if (!roleCanEdit) {
+      toast.show({
+        title: "편집 권한이 필요해요",
+        description: "보기 권한만 있는 참여자는 반응과 리뷰를 남길 수 없어요.",
+        tone: "error"
+      });
+      return false;
+    }
+
+    if (isSupabaseConfigured() && !user) {
+      router.push("/auth");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function handleToggleReaction(place: Place, reactionType: PlaceReactionType) {
+    if (!canUseSocialActions()) return;
+    setSocialLoadingPlaceId(place.id);
+    try {
+      await togglePlaceReaction(place.id, reactionType, currentUserId);
+      await reloadSocialOnly();
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "반응 저장에 실패했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    } finally {
+      setSocialLoadingPlaceId(null);
+    }
+  }
+
+  async function handleVerifyVisit(place: Place) {
+    if (!canUseSocialActions()) return;
+    if (!Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
+      toast.show({
+        title: "장소 좌표가 필요해요",
+        description: "좌표가 있는 장소만 방문 인증할 수 있어요.",
+        tone: "error"
+      });
+      return;
+    }
+
+    setVerifyingPlaceId(place.id);
+    try {
+      const position = await getCurrentPosition({
+        enableHighAccuracy: true,
+        maximumAge: 15000,
+        timeout: 12000
+      });
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+      const distance = calculateDistanceMeters(latitude, longitude, place.lat, place.lng);
+
+      if (distance > VISIT_RADIUS_METERS) {
+        toast.show({
+          title: "장소 근처에서만 인증할 수 있어요",
+          description: `현재 위치가 약 ${Math.round(distance)}m 떨어져 있어요.`,
+          tone: "error"
+        });
+        return;
+      }
+
+      await verifyPlaceVisit(place.id, { latitude, longitude }, currentUserId);
+      await reloadSocialOnly();
+      toast.show({
+        title: "방문 인증이 완료됐어요",
+        description: "이제 인증 리뷰를 남길 수 있어요.",
+        tone: "success"
+      });
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "방문 인증에 실패했어요",
+        description: getGeolocationErrorMessage(err),
+        tone: "error"
+      });
+    } finally {
+      setVerifyingPlaceId(null);
+    }
+  }
+
+  function handleReviewBlocked() {
+    toast.show({
+      title: "방문 인증 후 리뷰를 남길 수 있어요",
+      description: "장소 근처에서 도장 완료를 먼저 해주세요.",
+      tone: "error"
+    });
+  }
+
+  async function handleCreateReview(place: Place, content: string) {
+    if (!canUseSocialActions()) return;
+    const social = socialByPlace[place.id];
+    if (!social?.visitedByMe) {
+      handleReviewBlocked();
+      return;
+    }
+
+    setReviewSubmittingPlaceId(place.id);
+    try {
+      await createPlaceReview(place.id, content, currentUserId);
+      await reloadSocialOnly();
+      toast.show({ title: "리뷰를 남겼어요", tone: "success" });
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "리뷰 저장에 실패했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    } finally {
+      setReviewSubmittingPlaceId(null);
+    }
+  }
+
   async function handleGenerateInvite() {
     if (!myMember) return;
     setGeneratingInvite(true);
@@ -865,6 +1099,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             }}
             places={[]}
             selectedPlaceId={null}
+            mukkitPickPlaceIds={mukkitPickPlaceIds}
           />
           {canEdit && (
             <div className="mt-5">
@@ -892,6 +1127,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             }}
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
+            mukkitPickPlaceIds={mukkitPickPlaceIds}
           />
           <PlaceList
             members={members}
@@ -906,6 +1142,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             }}
             places={filteredPlaces}
             selectedPlaceId={selectedPlaceId}
+            socialByPlace={socialByPlace}
             totalCount={places.length}
           />
         </div>
@@ -1062,6 +1299,15 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
         {detailPlace && (
           <PlaceDetailCard
             member={getMemberForPlace(detailPlace, members)}
+            social={socialByPlace[detailPlace.id]}
+            onToggleReaction={(reactionType) => handleToggleReaction(detailPlace, reactionType)}
+            onVerifyVisit={() => handleVerifyVisit(detailPlace)}
+            onCreateReview={(content) => handleCreateReview(detailPlace, content)}
+            onReviewBlocked={handleReviewBlocked}
+            actionLoading={socialLoadingPlaceId === detailPlace.id}
+            verifying={verifyingPlaceId === detailPlace.id}
+            reviewSubmitting={reviewSubmittingPlaceId === detailPlace.id}
+            canInteract={canEdit}
             onEdit={
               canEdit
                 ? () => setSheet({ kind: "place-edit", placeId: detailPlace.id })

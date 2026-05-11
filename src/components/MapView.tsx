@@ -26,25 +26,49 @@ type MapViewProps = {
   onSelectPlace: (placeId: string) => void;
   onOpenDetail?: (placeId: string) => void;
   onPickLocation?: (location: PickedLocation) => void;
+  mukkitPickPlaceIds?: string[];
 };
 
-function createMarkerIcon(color: string, selected: boolean) {
+function createMarkerIcon(color: string, selected: boolean, highlighted: boolean) {
   const markerColor = safeMarkerColor(color);
   const size = selected ? 28 : 22;
   const border = selected ? 4 : 3;
+  const iconSize = highlighted ? size + 14 : size;
+  const badge = highlighted
+    ? `<span style="
+        position:absolute;
+        right:-7px;
+        top:-8px;
+        display:flex;
+        width:18px;
+        height:18px;
+        align-items:center;
+        justify-content:center;
+        border-radius:999px;
+        background:#f59e0b;
+        color:white;
+        border:2px solid white;
+        font-size:11px;
+        font-weight:900;
+        box-shadow:0 6px 14px rgba(245,158,11,0.32);
+      ">★</span>`
+    : "";
 
   return L.divIcon({
     className: "mukkit-marker",
-    html: `<span style="
-      display:block;
-      width:${size}px;
-      height:${size}px;
-      border-radius:999px;
-      background:${markerColor};
-      border:${border}px solid white;
-      box-shadow:0 8px 18px rgba(15,23,42,0.22);
-    "></span>`,
-    iconSize: [size, size],
+    html: `<span style="position:relative;display:block;width:${size}px;height:${size}px;">
+      <span style="
+        display:block;
+        width:${size}px;
+        height:${size}px;
+        border-radius:999px;
+        background:${markerColor};
+        border:${border}px solid white;
+        box-shadow:0 8px 18px rgba(15,23,42,0.22);
+      "></span>
+      ${badge}
+    </span>`,
+    iconSize: [iconSize, iconSize],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -size / 2]
   });
@@ -125,23 +149,32 @@ export function MapView({
   selectedPlaceId,
   onSelectPlace,
   onOpenDetail,
-  onPickLocation
+  onPickLocation,
+  mukkitPickPlaceIds = []
 }: MapViewProps) {
+  const mukkitPickSet = useMemo(
+    () => new Set(mukkitPickPlaceIds),
+    [mukkitPickPlaceIds]
+  );
+
   const markerData = useMemo(
     () =>
       places.map((place) => {
         const member = getMemberForPlace(place, members);
+        const isMukkitPick = mukkitPickSet.has(place.id);
 
         return {
           place,
           member,
+          isMukkitPick,
           icon: createMarkerIcon(
             member?.markerColor ?? "#64748b",
-            selectedPlaceId === place.id
+            selectedPlaceId === place.id,
+            isMukkitPick
           )
         };
       }),
-    [members, places, selectedPlaceId]
+    [members, mukkitPickSet, places, selectedPlaceId]
   );
 
   return (
@@ -170,7 +203,7 @@ export function MapView({
           <FitVisiblePlaces places={places} selectedPlaceId={selectedPlaceId} />
           <LeafletLocationPicker onPickLocation={onPickLocation} />
 
-          {markerData.map(({ place, member, icon }) => (
+          {markerData.map(({ place, member, icon, isMukkitPick }) => (
             <Marker
               eventHandlers={{
                 click: () => onSelectPlace(place.id)
@@ -232,6 +265,23 @@ export function MapView({
                   >
                     {place.name}
                   </p>
+                  {isMukkitPick ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        marginTop: 6,
+                        padding: "3px 8px",
+                        borderRadius: 999,
+                        background: "#fef3c7",
+                        color: "#b45309",
+                        fontSize: 11,
+                        fontWeight: 800
+                      }}
+                    >
+                      ★ 먹킷각
+                    </span>
+                  ) : null}
                   <p
                     style={{
                       margin: "4px 0 0",

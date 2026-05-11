@@ -46,6 +46,52 @@ export type Place = {
   updatedAt: string;
 };
 
+export type PlaceReactionType = "like" | "want";
+
+export type PlaceReaction = {
+  id: string;
+  placeId: string;
+  userId: string;
+  reactionType: PlaceReactionType;
+  createdAt: string;
+};
+
+export type PlaceVisit = {
+  id: string;
+  placeId: string;
+  userId: string;
+  verified: boolean;
+  verifiedAt: string;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: string;
+};
+
+export type PlaceReview = {
+  id: string;
+  placeId: string;
+  userId: string;
+  content: string;
+  isVerifiedVisit: boolean;
+  createdAt: string;
+};
+
+export type PlaceSocialData = {
+  reactions: PlaceReaction[];
+  visits: PlaceVisit[];
+  reviews: PlaceReview[];
+};
+
+export type PlaceSocialSummary = {
+  likeCount: number;
+  wantCount: number;
+  likedByMe: boolean;
+  wantedByMe: boolean;
+  visitedByMe: boolean;
+  isMukkitPick: boolean;
+  reviews: PlaceReview[];
+};
+
 export type ProjectCreateInput = Pick<Project, "name" | "description">;
 
 export type MemberCreateInput = Pick<

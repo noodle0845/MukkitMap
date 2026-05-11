@@ -237,6 +237,11 @@ function HomeContent() {
   const isError = !loggedOut && loadStatus === "error";
   const isLoading =
     (authConfigured && authLoading) || (!loggedOut && loadStatus === "loading");
+  const canManageProject = useCallback(
+    (project: Project) =>
+      !authConfigured || counts[project.id]?.myRole === "owner",
+    [authConfigured, counts]
+  );
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#f8fafc]">
@@ -403,8 +408,8 @@ function HomeContent() {
                   counts={counts}
                   onEdit={setEditingProject}
                   onDelete={handleDeleteProject}
-                  canEditProject={() => true}
-                  canDeleteProject={() => true}
+                  canEditProject={canManageProject}
+                  canDeleteProject={canManageProject}
                 />
               )}
             </>
