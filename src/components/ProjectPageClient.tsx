@@ -10,6 +10,7 @@ import {
   Home,
   Link2,
   LogIn,
+  LogOut,
   MapPin,
   MoreVertical,
   Plus,
@@ -51,6 +52,7 @@ import {
   deleteProject,
   getPlaceSocialData,
   getProjectBundle,
+  leaveProject,
   regenerateInviteCode,
   togglePlaceReaction,
   updateMember,
@@ -422,13 +424,16 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     () => members.find((m) => m.userId === user?.id) ?? null,
     [members, user]
   );
+  const hasOwner = useMemo(() => members.some((m) => m.role === "owner"), [members]);
 
   // 권한 헬퍼
   const isOwner = myMember?.role === "owner";
   const isEditor = myMember?.role === "editor";
   const roleCanEdit = !isSupabaseConfigured() || isOwner || isEditor;
   const canInvite = !isSupabaseConfigured() || !!myMember;
-  const canManageMembers = !isSupabaseConfigured() || isOwner;
+  const canManageMembers = !isSupabaseConfigured() || isOwner || (!hasOwner && !!myMember);
+  const canDeleteProject = !isSupabaseConfigured() || isOwner || (!hasOwner && !!myMember);
+  const canLeaveProject = isSupabaseConfigured() && !!myMember;
   const canEdit = roleCanEdit;
 
   // ── 프로젝트 로딩 ──────────────────────────────────────────
@@ -923,6 +928,29 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     }
   }
 
+  async function handleLeaveProject() {
+    if (!project || !myMember) return;
+    setMenuOpen(false);
+    if (
+      !window.confirm(
+        `"${project.name}" 먹킷맵에서 나갈까요?\n다시 참여하려면 초대 링크가 필요해요.`
+      )
+    ) return;
+
+    try {
+      await leaveProject(projectId);
+      toast.show({ title: "먹킷맵에서 나갔어요", tone: "info" });
+      router.push("/");
+    } catch (err) {
+      console.error(err);
+      toast.show({
+        title: "먹킷맵 나가기에 실패했어요",
+        description: getErrorMessage(err),
+        tone: "error"
+      });
+    }
+  }
+
   // 드롭다운 외부 클릭 시 닫기
   useEffect(() => {
     if (!menuOpen) return;
@@ -992,8 +1020,7 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
           </Link>
 
           <Link className="shrink-0" href="/" aria-label="먹킷맵">
-            <GhostlyLogo className="sm:hidden" variant="mark" />
-            <GhostlyLogo className="hidden w-[132px] sm:inline-flex" />
+            <GhostlyLogo className="w-[112px] sm:w-[132px]" />
           </Link>
 
           <div className="min-w-0 flex-1">
@@ -1037,8 +1064,8 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
             </button>
           )}
 
-          {/* 더보기 메뉴 (방장만) */}
-          {isOwner && (
+          {/* 더보기 메뉴 */}
+          {(canLeaveProject || canDeleteProject) && (
             <div className="relative" ref={menuRef}>
               <button
                 className="icon-button"
@@ -1050,15 +1077,27 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
                 <MoreVertical size={17} />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full z-[700] mt-1 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
-                  <button
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-[14px] font-semibold text-red-500 transition hover:bg-red-50"
-                    onClick={handleDeleteProject}
-                    type="button"
-                  >
-                    <Trash2 size={15} />
-                    먹킷맵 삭제
-                  </button>
+                <div className="absolute right-0 top-full z-[700] mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                  {canLeaveProject && (
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[14px] font-semibold text-slate-600 transition hover:bg-slate-50"
+                      onClick={handleLeaveProject}
+                      type="button"
+                    >
+                      <LogOut size={15} />
+                      먹킷맵 나가기
+                    </button>
+                  )}
+                  {canDeleteProject && (
+                    <button
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[14px] font-semibold text-red-500 transition hover:bg-red-50"
+                      onClick={handleDeleteProject}
+                      type="button"
+                    >
+                      <Trash2 size={15} />
+                      먹킷맵 삭제
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1225,6 +1264,33 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
                   초대 링크 생성
                 </button>
               )}
+            </div>
+          )}
+          {(canLeaveProject || canDeleteProject) && (
+            <div className="rounded-xl border border-[var(--border-soft)] p-4">
+              <p className="caption mb-3">프로젝트 관리</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {canLeaveProject && (
+                  <button
+                    className="btn-ghost justify-center text-[13px]"
+                    onClick={handleLeaveProject}
+                    type="button"
+                  >
+                    <LogOut size={14} />
+                    먹킷맵 나가기
+                  </button>
+                )}
+                {canDeleteProject && (
+                  <button
+                    className="btn-ghost justify-center text-[13px] text-red-500 hover:border-red-200 hover:bg-red-50"
+                    onClick={handleDeleteProject}
+                    type="button"
+                  >
+                    <Trash2 size={14} />
+                    먹킷맵 삭제
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {/* admin만 새 참여자 직접 추가 */}

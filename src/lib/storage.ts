@@ -193,6 +193,24 @@ export function deleteMember(memberId: string) {
   });
 }
 
+export function leaveProject(projectId: string, userId?: string | null) {
+  const store = getStore();
+  const member =
+    store.members.find(
+      (item) => item.projectId === projectId && userId && item.userId === userId
+    ) ?? store.members.find((item) => item.projectId === projectId);
+
+  if (!member) return;
+
+  saveStore({
+    ...store,
+    members: store.members.filter((item) => item.id !== member.id),
+    places: store.places.map((place) =>
+      place.memberId === member.id ? { ...place, memberId: "" } : place
+    )
+  });
+}
+
 export function updateMember(memberId: string, input: MemberCreateInput) {
   const store = getStore();
   let updatedMember: Member | null = null;

@@ -217,7 +217,8 @@ export async function getProjectCounts(
         {
           memberCount: store.members.filter((m) => m.projectId === p.id).length,
           placeCount: store.places.filter((pl) => pl.projectId === p.id).length,
-          myRole: store.members.find((m) => m.projectId === p.id)?.role ?? "owner"
+          myRole: store.members.find((m) => m.projectId === p.id)?.role ?? "owner",
+          hasOwner: store.members.some((m) => m.projectId === p.id && m.role === "owner")
         }
       ])
     );
@@ -244,6 +245,9 @@ export async function getProjectCounts(
       {
         memberCount: (members ?? []).filter((m) => m.project_id === p.id).length,
         placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length,
+        hasOwner: (members ?? []).some(
+          (m) => m.project_id === p.id && normalizeRole(m.role) === "owner"
+        ),
         myRole: (() => {
           const row = (members ?? []).find(
             (m) => m.project_id === p.id && m.user_id === user?.id
@@ -464,6 +468,47 @@ export async function deleteMember(memberId: string): Promise<void> {
   // 해당 멤버의 장소도 삭제
   await supabase().from("places").delete().eq("member_id", memberId);
   const { error } = await supabase().from("members").delete().eq("id", memberId);
+  throwOnError(error);
+}
+
+export async function leaveProject(projectId: string): Promise<void> {
+  if (!isSupabaseConfigured()) {
+    localStore.leaveProject(projectId);
+    return;
+  }
+
+  const {
+    data: { user },
+    error: userError
+  } = await supabase().auth.getUser();
+  throwOnError(userError);
+  if (!user) throw new Error("로그인이 필요해요");
+
+  const { data: memberRows, error: memberError } = await supabase()
+    .from("members")
+    .select("id, role")
+    .eq("project_id", projectId)
+    .eq("user_id", user.id)
+    .limit(1);
+  throwOnError(memberError);
+
+  const member = memberRows?.[0] as { id: string; role: string } | undefined;
+  if (!member) throw new Error("참여자 정보를 찾지 못했어요");
+
+  if (normalizeRole(member.role) === "owner") {
+    const { count, error: ownerCountError } = await supabase()
+      .from("members")
+      .select("id", { count: "exact", head: true })
+      .eq("project_id", projectId)
+      .eq("role", "owner");
+    throwOnError(ownerCountError);
+
+    if ((count ?? 0) <= 1) {
+      throw new Error("마지막 방장은 나갈 수 없어요. 다른 참여자를 방장으로 바꾸거나 먹킷맵을 삭제해주세요.");
+    }
+  }
+
+  const { error } = await supabase().from("members").delete().eq("id", member.id);
   throwOnError(error);
 }
 

@@ -238,8 +238,14 @@ function HomeContent() {
   const isLoading =
     (authConfigured && authLoading) || (!loggedOut && loadStatus === "loading");
   const canManageProject = useCallback(
-    (project: Project) =>
-      !authConfigured || counts[project.id]?.myRole === "owner",
+    (project: Project) => {
+      const count = counts[project.id];
+      return (
+        !authConfigured ||
+        count?.myRole === "owner" ||
+        (!!count?.myRole && count.hasOwner === false)
+      );
+    },
     [authConfigured, counts]
   );
 

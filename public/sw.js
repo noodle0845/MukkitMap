@@ -1,4 +1,5 @@
-const CACHE_NAME = "mukkit-map-shell-v1";
+const CACHE_NAME = "mukkit-map-shell-v3";
+const ASSET_VERSION = "20260512";
 
 const CORE_ASSETS = [
   "/",
@@ -7,8 +8,10 @@ const CORE_ASSETS = [
   "/icons/icon-512.png",
   "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png",
-  "/mukkit-logo-horizontal.png",
-  "/mukkit-logo-square.png"
+  `/mukkit-logo-character.png?v=${ASSET_VERSION}`,
+  `/mukkit-logo-character-white.png?v=${ASSET_VERSION}`,
+  `/mukkit-logo-horizontal.png?v=${ASSET_VERSION}`,
+  `/mukkit-logo-horizontal-white.png?v=${ASSET_VERSION}`
 ];
 
 self.addEventListener("install", (event) => {

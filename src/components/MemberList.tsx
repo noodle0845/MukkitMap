@@ -63,28 +63,30 @@ export function MemberList({
             </div>
 
             {canEdit || canDelete ? (
-              <div className="flex shrink-0 items-center gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+              <div className="flex shrink-0 items-center gap-1">
                 {canEdit ? (
                   <button
-                    className="icon-button h-8 w-8 text-slate-400 hover:border-emerald-200 hover:bg-[var(--primary-soft)] hover:text-emerald-600"
+                    className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[12px] font-bold text-slate-500 transition hover:border-emerald-200 hover:bg-[var(--primary-soft)] hover:text-emerald-600"
                     onClick={() => onEdit?.(member)}
                     title={`${member.nickname} 수정`}
                     type="button"
                     aria-label={`${member.nickname} 수정`}
                   >
                     <Pencil size={15} />
+                    수정
                   </button>
                 ) : null}
 
                 {canDelete ? (
                   <button
-                    className="icon-button h-8 w-8 text-slate-400 hover:border-red-200 hover:bg-[var(--danger-soft)] hover:text-red-500"
+                    className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--border)] px-2 text-[12px] font-bold text-slate-500 transition hover:border-red-200 hover:bg-[var(--danger-soft)] hover:text-red-500"
                     onClick={() => onDelete?.(member)}
                     title={`${member.nickname} 삭제`}
                     type="button"
                     aria-label={`${member.nickname} 삭제`}
                   >
                     <Trash2 size={15} />
+                    삭제
                   </button>
                 ) : null}
               </div>

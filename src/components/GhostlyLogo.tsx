@@ -1,40 +1,40 @@
 type GhostlyLogoProps = {
   className?: string;
   variant?: "full" | "mark" | "square" | "character";
+  color?: "black" | "white";
 };
 
-export function GhostlyLogo({ className = "", variant = "full" }: GhostlyLogoProps) {
-  if (variant === "mark" || variant === "character") {
-    return (
-      <span
-        className={`inline-flex h-9 w-9 select-none items-center justify-center rounded-xl bg-emerald-500 text-[14px] font-black text-white ${className}`}
-        aria-label="먹킷맵"
-      >
-        먹
-      </span>
-    );
-  }
+const LOGO_VERSION = "20260512";
 
-  if (variant === "square") {
-    return (
-      <span
-        className={`inline-flex h-10 w-10 select-none items-center justify-center rounded-xl bg-emerald-500 text-[14px] font-black text-white ${className}`}
-        aria-label="먹킷맵"
-      >
-        먹
-      </span>
-    );
+const LOGO_SRC = {
+  black: {
+    full: `/mukkit-logo-horizontal.png?v=${LOGO_VERSION}`,
+    mark: `/mukkit-logo-character.png?v=${LOGO_VERSION}`
+  },
+  white: {
+    full: `/mukkit-logo-horizontal-white.png?v=${LOGO_VERSION}`,
+    mark: `/mukkit-logo-character-white.png?v=${LOGO_VERSION}`
   }
+} as const;
 
-  // full (horizontal) variant
+export function GhostlyLogo({
+  className = "",
+  variant = "full",
+  color = "black"
+}: GhostlyLogoProps) {
+  const isMark = variant === "mark" || variant === "square" || variant === "character";
+  const src = isMark ? LOGO_SRC[color].mark : LOGO_SRC[color].full;
+  const baseClass = isMark
+    ? "block h-10 w-10 shrink-0 object-contain"
+    : "block h-auto max-w-full shrink-0 object-contain";
+
   return (
-    <span className={`inline-flex select-none items-center gap-2 ${className}`} aria-label="먹킷맵">
-      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-[13px] font-black text-white">
-        먹
-      </span>
-      <span className="text-[15px] font-black tracking-tight text-slate-900 dark:text-white">
-        먹킷맵
-      </span>
-    </span>
+    <img
+      src={src}
+      alt="먹킷맵"
+      className={`${baseClass} ${className}`}
+      decoding="async"
+      draggable={false}
+    />
   );
 }

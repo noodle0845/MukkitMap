@@ -133,6 +133,7 @@ export type ProjectCounts = {
   memberCount: number;
   placeCount: number;
   myRole?: MemberRole | null;
+  hasOwner?: boolean;
 };
 
 export type NaverLocalSearchItem = {
