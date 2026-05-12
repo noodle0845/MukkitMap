@@ -368,13 +368,13 @@ export function MemberForm({
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
       >
-        <div className="space-y-5">
-          <p className="text-[15px] font-bold tracking-[0.08em] text-slate-200">
+        <div className="space-y-3 sm:space-y-5">
+          <p className="text-[14px] font-bold tracking-[0.08em] text-slate-200 sm:text-[15px]">
             색상 선택
           </p>
 
           <div
-            className="relative h-56 cursor-crosshair rounded-lg"
+            className="relative h-40 cursor-crosshair rounded-lg sm:h-56"
             ref={colorPlaneRef}
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId);
@@ -399,7 +399,7 @@ export function MemberForm({
 
           <div className="flex items-center gap-3">
             <span
-              className="h-11 w-11 shrink-0 rounded-full border-2 border-white/70 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
+              className="h-9 w-9 shrink-0 rounded-full border-2 border-white/70 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] sm:h-11 sm:w-11"
               style={{ backgroundColor: draftColor }}
               aria-hidden
             />
@@ -420,13 +420,13 @@ export function MemberForm({
             />
           </div>
 
-          <div className="grid grid-cols-4 gap-3 text-center">
+          <div className="grid grid-cols-4 gap-2 text-center sm:gap-3">
             <label className="block">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-[11px]">
                 # HEX
               </span>
               <input
-                className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-center text-sm font-bold text-white outline-none focus:border-white/40"
+                className="mt-1 w-full rounded-lg border border-white/10 bg-white/10 px-2 py-1.5 text-center text-[13px] font-bold text-white outline-none focus:border-white/40 sm:mt-1.5 sm:px-3 sm:py-2 sm:text-sm"
                 value={hexInput}
                 onChange={(event) => {
                   const nextHex = cleanHexInput(event.target.value);
@@ -437,11 +437,11 @@ export function MemberForm({
             </label>
             {(["r", "g", "b"] as const).map((key) => (
               <label className="block" key={key}>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:text-[11px]">
                   {key.toUpperCase()}
                 </span>
                 <input
-                  className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/10 px-3 py-2 text-center text-sm font-bold text-white outline-none focus:border-white/40"
+                  className="mt-1 w-full rounded-lg border border-white/10 bg-white/10 px-2 py-1.5 text-center text-[13px] font-bold text-white outline-none focus:border-white/40 sm:mt-1.5 sm:px-3 sm:py-2 sm:text-sm"
                   max={255}
                   min={0}
                   onChange={(event) => updateRgbField(key, event.target.value)}
@@ -452,12 +452,12 @@ export function MemberForm({
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-8 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
             {PRESET_COLORS.map((color) => (
               <button
                 aria-label={`색상 ${color}`}
                 aria-pressed={draftColor.toLowerCase() === color.toLowerCase()}
-                className="h-10 w-10 rounded-lg border border-white/15 transition active:scale-95"
+                className="aspect-square w-full rounded-lg border border-white/15 transition active:scale-95 sm:h-10 sm:w-10"
                 key={color}
                 onClick={() => updateDraftColor(color)}
                 style={{
@@ -474,14 +474,14 @@ export function MemberForm({
 
           <div className="grid grid-cols-[0.75fr_1.25fr] gap-3 pt-1">
             <button
-              className="rounded-xl bg-white/[0.12] px-4 py-4 text-sm font-extrabold text-white transition hover:bg-white/[0.18]"
+              className="rounded-xl bg-white/[0.12] px-4 py-3 text-sm font-extrabold text-white transition hover:bg-white/[0.18] sm:py-4"
               onClick={() => setPickerOpen(false)}
               type="button"
             >
               취소
             </button>
             <button
-              className="rounded-xl bg-white px-4 py-4 text-sm font-extrabold text-slate-950 transition hover:bg-slate-100"
+              className="rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-slate-950 transition hover:bg-slate-100 sm:py-4"
               onClick={applyColorPicker}
               type="button"
             >

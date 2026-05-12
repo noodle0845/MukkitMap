@@ -424,15 +424,20 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     () => members.find((m) => m.userId === user?.id) ?? null,
     [members, user]
   );
-  const hasOwner = useMemo(() => members.some((m) => m.role === "owner"), [members]);
+  const hasSignedOwner = useMemo(
+    () => members.some((m) => m.role === "owner" && Boolean(m.userId)),
+    [members]
+  );
 
   // 권한 헬퍼
   const isOwner = myMember?.role === "owner";
   const isEditor = myMember?.role === "editor";
-  const roleCanEdit = !isSupabaseConfigured() || isOwner || isEditor;
+  const isLegacyOwnerCandidate = isSupabaseConfigured() && !!myMember && !hasSignedOwner;
+  const isEffectiveOwner = isOwner || isLegacyOwnerCandidate;
+  const roleCanEdit = !isSupabaseConfigured() || isEffectiveOwner || isEditor;
   const canInvite = !isSupabaseConfigured() || !!myMember;
-  const canManageMembers = !isSupabaseConfigured() || isOwner || (!hasOwner && !!myMember);
-  const canDeleteProject = !isSupabaseConfigured() || isOwner || (!hasOwner && !!myMember);
+  const canManageMembers = !isSupabaseConfigured() || isEffectiveOwner;
+  const canDeleteProject = !isSupabaseConfigured() || isEffectiveOwner;
   const canLeaveProject = isSupabaseConfigured() && !!myMember;
   const canEdit = roleCanEdit;
 
@@ -1014,43 +1019,45 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
     <main className="min-h-screen pb-20">
       {/* ── Topbar ────────────────────────────────────────── */}
       <header className="sticky top-0 z-[500] border-b border-[var(--border)] bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1680px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
-          <Link className="icon-button" href="/" aria-label="프로젝트 목록으로">
+        <div className="mx-auto flex max-w-[1680px] items-center gap-2 px-3 py-3 sm:gap-4 sm:px-6 sm:py-3.5 lg:px-10">
+          <Link className="icon-button shrink-0" href="/" aria-label="프로젝트 목록으로">
             <ArrowLeft size={17} />
           </Link>
 
-          <Link className="shrink-0" href="/" aria-label="먹킷맵">
+          <Link className="hidden shrink-0 sm:block" href="/" aria-label="먹킷맵">
             <GhostlyLogo className="w-[112px] sm:w-[132px]" />
           </Link>
 
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[18px] font-bold leading-tight text-slate-900">
+            <h1 className="truncate text-[15px] font-bold leading-tight text-slate-900 sm:text-[18px]">
               {project.name}
             </h1>
-            <p className="truncate text-[12px] font-semibold text-slate-500">
+            <p className="truncate text-[11px] font-semibold text-slate-500 sm:text-[12px]">
               {project.description || "설명이 없는 프로젝트"}
             </p>
           </div>
 
           {/* 참여자 */}
           <button
-            className="chip"
+            className="chip shrink-0 whitespace-nowrap !px-2.5 sm:!px-3"
             onClick={() => setSheet({ kind: "members" })}
             title="참여자 관리"
             type="button"
           >
             <Users size={14} />
-            {members.length}명
+            <span>{members.length}</span>
+            <span className="hidden sm:inline">명</span>
           </button>
 
           {/* 초대 링크 - 멤버라면 누구나 공유 가능 */}
           {canInvite && (
             <button
-              className={inviteCopied ? "btn-soft" : "btn-ghost"}
+              className={`${inviteCopied ? "btn-soft" : "btn-ghost"} shrink-0 whitespace-nowrap !px-2.5 sm:!px-4`}
               onClick={inviteCode ? handleCopyInvite : handleGenerateInvite}
               disabled={generatingInvite}
               title="초대 링크"
               type="button"
+              aria-label="초대 링크"
             >
               {generatingInvite ? (
                 <RotateCcw size={16} className="animate-spin" />
@@ -1060,13 +1067,13 @@ function ProjectContent({ projectId }: ProjectPageClientProps) {
                 <Link2 size={16} />
               )}
               <span className="hidden sm:inline">{inviteCopied ? "복사됨" : "초대 링크"}</span>
-              <span className="sm:hidden">{inviteCopied ? "복사됨" : "초대"}</span>
+              <span className="hidden min-[400px]:inline sm:hidden">{inviteCopied ? "복사됨" : "초대"}</span>
             </button>
           )}
 
           {/* 더보기 메뉴 */}
           {(canLeaveProject || canDeleteProject) && (
-            <div className="relative" ref={menuRef}>
+            <div className="relative shrink-0" ref={menuRef}>
               <button
                 className="icon-button"
                 onClick={() => setMenuOpen((v) => !v)}
