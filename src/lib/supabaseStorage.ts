@@ -181,6 +181,15 @@ function throwOnError(error: { message?: string } | null, fallback = "알 수 �
   if (error) throw new Error(error.message ?? fallback);
 }
 
+function requireAffectedRows<T>(
+  data: T[] | null | undefined,
+  message: string
+): T[] {
+  const rows = data ?? [];
+  if (rows.length === 0) throw new Error(message);
+  return rows;
+}
+
 async function getRequiredUserId() {
   const {
     data: { user },
@@ -218,7 +227,8 @@ export async function getProjectCounts(
           memberCount: store.members.filter((m) => m.projectId === p.id).length,
           placeCount: store.places.filter((pl) => pl.projectId === p.id).length,
           myRole: store.members.find((m) => m.projectId === p.id)?.role ?? "owner",
-          hasOwner: store.members.some((m) => m.projectId === p.id && m.role === "owner")
+          hasOwner: store.members.some((m) => m.projectId === p.id && m.role === "owner"),
+          hasSignedOwner: store.members.some((m) => m.projectId === p.id && m.role === "owner")
         }
       ])
     );
@@ -240,22 +250,23 @@ export async function getProjectCounts(
   throwOnError(placeError);
 
   return Object.fromEntries(
-    projects.map((p) => [
-      p.id,
-      {
-        memberCount: (members ?? []).filter((m) => m.project_id === p.id).length,
-        placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length,
-        hasOwner: (members ?? []).some(
-          (m) => m.project_id === p.id && normalizeRole(m.role) === "owner"
-        ),
-        myRole: (() => {
-          const row = (members ?? []).find(
-            (m) => m.project_id === p.id && m.user_id === user?.id
-          );
-          return row ? normalizeRole(row.role) : null;
-        })()
-      }
-    ])
+    projects.map((p) => {
+      const projectMembers = (members ?? []).filter((m) => m.project_id === p.id);
+      const myRow = projectMembers.find((m) => m.user_id === user?.id);
+
+      return [
+        p.id,
+        {
+          memberCount: projectMembers.length,
+          placeCount: (places ?? []).filter((pl) => pl.project_id === p.id).length,
+          hasOwner: projectMembers.some((m) => normalizeRole(m.role) === "owner"),
+          hasSignedOwner: projectMembers.some(
+            (m) => normalizeRole(m.role) === "owner" && Boolean(m.user_id)
+          ),
+          myRole: myRow ? normalizeRole(myRow.role) : null
+        }
+      ];
+    })
   );
 }
 
@@ -329,16 +340,17 @@ export async function deleteProject(projectId: string): Promise<void> {
     return;
   }
 
-  // 장소 → 멤버 → 프로젝트 순으로 삭제 (DB CASCADE가 없는 경우 방어)
-  await supabase().from("places").delete().eq("project_id", projectId);
-  await supabase().from("members").delete().eq("project_id", projectId);
-
-  const { error } = await supabase()
+  const { data, error } = await supabase()
     .from("projects")
     .delete()
-    .eq("id", projectId);
+    .eq("id", projectId)
+    .select("id");
 
   throwOnError(error);
+  requireAffectedRows(
+    data,
+    "먹킷맵 삭제 권한이 없거나 이미 삭제된 먹킷맵이에요."
+  );
 }
 
 export async function updateProject(
@@ -355,10 +367,14 @@ export async function updateProject(
     })
     .eq("id", projectId)
     .select()
-    .single();
+    .limit(1);
 
   throwOnError(error);
-  return data ? mapProject(data as ProjectRow) : null;
+  const [project] = requireAffectedRows(
+    data as ProjectRow[] | null,
+    "먹킷맵 수정 권한이 없거나 이미 삭제된 먹킷맵이에요."
+  );
+  return mapProject(project);
 }
 
 // ── Invite Code ───────────────────────────────────────────────────
@@ -465,15 +481,38 @@ export async function deleteMember(memberId: string): Promise<void> {
     return;
   }
 
-  // 해당 멤버의 장소도 삭제
-  await supabase().from("places").delete().eq("member_id", memberId);
-  const { error } = await supabase().from("members").delete().eq("id", memberId);
+  const { data: placeRows, error: placeReadError } = await supabase()
+    .from("places")
+    .select("id")
+    .eq("member_id", memberId);
+  throwOnError(placeReadError);
+
+  const { data, error } = await supabase()
+    .from("members")
+    .delete()
+    .eq("id", memberId)
+    .select("id");
+
   throwOnError(error);
+  requireAffectedRows(
+    data,
+    "참여자 삭제 권한이 없거나 이미 삭제된 참여자예요."
+  );
+
+  const placeIds = ((placeRows ?? []) as Array<{ id: string }>).map((place) => place.id);
+  if (placeIds.length > 0) {
+    const { error: placeDeleteError } = await supabase()
+      .from("places")
+      .delete()
+      .in("id", placeIds);
+    throwOnError(placeDeleteError);
+  }
 }
 
 export async function leaveProject(projectId: string): Promise<void> {
   if (!isSupabaseConfigured()) {
-    localStore.leaveProject(projectId);
+    // 로컬 모드: userId 개념이 없어 안전하게 no-op
+    localStore.leaveProject(projectId, null);
     return;
   }
 
@@ -508,8 +547,17 @@ export async function leaveProject(projectId: string): Promise<void> {
     }
   }
 
-  const { error } = await supabase().from("members").delete().eq("id", member.id);
+  const { data, error } = await supabase()
+    .from("members")
+    .delete()
+    .eq("id", member.id)
+    .select("id");
+
   throwOnError(error);
+  requireAffectedRows(
+    data,
+    "먹킷맵 나가기 권한이 없거나 이미 나간 상태예요."
+  );
 }
 
 export async function updateMember(
@@ -527,10 +575,14 @@ export async function updateMember(
     })
     .eq("id", memberId)
     .select()
-    .single();
+    .limit(1);
 
   throwOnError(error);
-  return data ? mapMember(data as MemberRow) : null;
+  const [member] = requireAffectedRows(
+    data as MemberRow[] | null,
+    "참여자 수정 권한이 없거나 대상이 이미 삭제됐어요."
+  );
+  return mapMember(member);
 }
 
 // ── Places ────────────────────────────────────────────────────────

@@ -55,6 +55,21 @@ export function isValidHttpUrl(value: string) {
   }
 }
 
+/**
+ * AuthPage 등에서 returnTo 파라미터를 안전하게 검증.
+ * 절대 URL(https://evil.com), protocol-relative URL(//evil.com),
+ * 그리고 빈/누락된 값은 모두 "/"로 폴백한다.
+ */
+export function safeReturnTo(raw: string | null | undefined): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/")) return "/";
+  // "//evil.com" 형태의 protocol-relative URL 차단
+  if (raw.startsWith("//")) return "/";
+  // "/\evil.com" 같은 변형 차단
+  if (raw.startsWith("/\\")) return "/";
+  return raw;
+}
+
 export function getMemberForPlace(place: Place, members: Member[]) {
   return members.find((member) => member.id === place.memberId);
 }

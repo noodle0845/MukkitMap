@@ -194,11 +194,15 @@ export function deleteMember(memberId: string) {
 }
 
 export function leaveProject(projectId: string, userId?: string | null) {
+  // userId가 없으면 안전하게 no-op.
+  // 로컬 모드는 단일 디바이스에서 여러 멤버를 다루므로
+  // userId 없이는 "누가 나가는지" 판별 불가 → 엉뚱한 멤버 삭제 방지.
+  if (!userId) return;
+
   const store = getStore();
-  const member =
-    store.members.find(
-      (item) => item.projectId === projectId && userId && item.userId === userId
-    ) ?? store.members.find((item) => item.projectId === projectId);
+  const member = store.members.find(
+    (item) => item.projectId === projectId && item.userId === userId
+  );
 
   if (!member) return;
 

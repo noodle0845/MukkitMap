@@ -98,8 +98,6 @@ export function PlaceForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const lat = Number(form.lat);
-    const lng = Number(form.lng);
 
     if (!form.memberId) {
       setError("추천자를 선택해주세요.");
@@ -117,8 +115,30 @@ export function PlaceForm({
       setError("주소를 입력해주세요.");
       return;
     }
+
+    // 빈 문자열 명시 체크 (Number("") = 0 이라 isFinite 체크를 통과해버리는 문제)
+    if (!form.lat.trim() || !form.lng.trim()) {
+      setError("위도와 경도를 입력해주세요.");
+      return;
+    }
+
+    const lat = Number(form.lat);
+    const lng = Number(form.lng);
+
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
       setError("위도와 경도는 숫자로 입력해주세요.");
+      return;
+    }
+
+    // (0, 0)은 아프리카 서쪽 적도 바다 — 사실상 실수 입력
+    if (lat === 0 && lng === 0) {
+      setError("좌표가 (0, 0)이에요. 지도에서 위치를 다시 선택해주세요.");
+      return;
+    }
+
+    // 위경도 범위 검증 (지구 전체)
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      setError("위도(-90~90), 경도(-180~180) 범위를 벗어났어요.");
       return;
     }
 

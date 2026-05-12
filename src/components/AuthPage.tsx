@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, LogIn, UserPlus, ArrowLeft } from "lucide-react";
 import { GhostlyLogo } from "@/components/GhostlyLogo";
 import { getSupabaseClient } from "@/lib/supabaseClient";
+import { safeReturnTo } from "@/lib/utils";
 
 type Mode = "login" | "signup";
 
@@ -31,7 +32,8 @@ function detectOtherInApp(): boolean {
 export function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("returnTo") ?? "/";
+  // 외부 도메인 redirect 방지: 반드시 "/"로 시작하는 내부 경로만 허용
+  const returnTo = safeReturnTo(searchParams.get("returnTo"));
 
   const [isKakaoInApp, setIsKakaoInApp] = useState(false);
   const [isOtherInApp, setIsOtherInApp] = useState(false);
